@@ -9,9 +9,12 @@ const urlsToCache = [
     '/',
     '/index.html',
     '/manifest.webmanifest',
-    // 尽管不推荐在生产环境中直接缓存跨域 CDN，但为了演示离线能力，此处包含。
-    // 在实际部署时，如果 CDN 不稳定，建议将这些库下载到本地项目路径。
-    'https://cdn.tailwindcss.com',
+    // --------------------------------------------------------------------------------
+    // WARNING FIX: cdn.tailwindcss.com 被移除。
+    // 在生产环境中，您应该移除 index.html 中对 cdn.tailwindcss.com 的引用，
+    // 并使用构建工具生成一个单独的 'style.css' 文件来包含所有所需的 Tailwind 样式，
+    // 以避免生产警告和性能问题。
+    // --------------------------------------------------------------------------------
     'https://unpkg.com/lucide@latest',
     'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js',
     // 请确保您已在项目根目录创建 /icons 文件夹并放入图标
@@ -28,11 +31,16 @@ self.addEventListener('install', (event) => {
             console.log('Service Worker: 预缓存成功');
             return cache.addAll(urlsToCache);
         })
+        .catch(error => {
+            // 如果缓存失败（例如：CDN资源无法访问），记录错误但Service Worker仍可尝试安装
+            console.error('Service Worker: 预缓存部分或全部失败', error);
+        })
     );
 });
 
 // 激活阶段：清理旧的缓存版本
 self.addEventListener('activate', (event) => {
+    // 缓存名称更新，以确保 Service Worker 缓存更新
     const cacheWhitelist = [CACHE_NAME];
     event.waitUntil(
         caches.keys().then((cacheNames) => {
@@ -72,9 +80,15 @@ self.addEventListener('fetch', (event) => {
                     const responseToCache = response.clone();
 
                     // 检查请求 URL 是否在我们的预缓存列表中，如果是，则添加到缓存
+                    // 注意：这里检查的是 urlsToCache 列表中的 URL，而不是所有 URL
                     if (urlsToCache.some(url => event.request.url.includes(url))) {
                         caches.open(CACHE_NAME)
                         .then((cache) => {
+                            // 避免缓存跨域不透明响应（Opaque Response），这会导致配额问题。
+                            // 但对于明确列出的 CDN 资源，我们通常可以接受。
+                            if (response.type === 'opaque') {
+                                console.warn('Service Worker: 正在缓存不透明响应 (可能限制缓存配额)', event.request.url);
+                            }
                             cache.put(event.request, responseToCache);
                         });
                     }
