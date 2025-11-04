@@ -1,0 +1,23 @@
+{
+    "name": "环球语音之旅 - 老年人英文学习游戏",
+    "short_name": "语音之旅",
+    "description": "一个专为老年人设计的、可以离线玩的英文语音学习游戏。",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#1e3a8a",
+    "icons": [
+        {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

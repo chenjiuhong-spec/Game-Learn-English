@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>环球语音之旅 - 老年人英文学习游戏</title>
+    
+    <!-- PWA: 链接到应用清单文件 -->
+    <link rel="manifest" href="manifest.webmanifest">
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Lucide Icons (用于大图标) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 引入 Confetti 撒花效果库 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        /*
+        * 字体加载优化：
+        * 依赖本地系统字体，并将 'Noto Sans TC', 'Inter' 作为首选。
+        */
+        :root {
+            --color-primary: #1e3a8a; /* 深蓝色 */
+            --color-secondary: #3b82f6; /* 亮蓝色 */
+            --color-success: #10b981; /* 绿色 */
+            --color-warning: #f59e0b; /* 黄色 */
+            --color-danger: #ef4444; /* 红色 */
+            --color-background: #f0f9ff; /* 浅蓝色背景 */
+        }
+        body {
+            /* 依赖系统字体，并优先使用 Noto Sans TC 和 Inter 作为期望的风格 */
+            font-family: 'Noto Sans TC', 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--color-background);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+        /* 确保所有元素在移动端都足够大 */
+        .text-xl { font-size: 1.5rem; }
+        .text-2xl { font-size: 1.875rem; }
+        .text-3xl { font-size: 2.25rem; }
+        .text-4xl { font-size: 2.5rem; }
+        .btn-xl {
+            padding: 1.5rem 2.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            border-radius: 1.5rem;
+            transition: transform 0.1s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-xl:active {
+            transform: scale(0.98);
+        }
+        .card {
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+        /* 麦克风动态效果 */
+        #mic-icon {
+            animation: pulse 1.5s infinite;
+        }
+        .listening #mic-icon {
+            animation: breathe 1s infinite alternate;
+            color: var(--color-danger);
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        @keyframes breathe {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+        /* 评分反馈弹窗动画 */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: all 0.3s ease-out;
+        }
+        
+        /* === 图片过渡动画 (Image Transition) === */
+        .image-transition {
+            opacity: 0;
+            transform: scale(0.98); /* Start slightly smaller */
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        .image-transition.loaded {
+            opacity: 1;
+            transform: scale(1); /* End at full size */
+        }
+        
+        /* === 升级/通关 动画覆盖层 (Level Up/Completion Animation) === */
+        #congratulations-overlay {
+            transition: opacity 0.5s ease-out;
+            opacity: 0;
+        }
+        #congratulations-overlay.overlay-visible {
+            opacity: 1;
+            display: flex; /* Overrides the 'hidden' class visually */
+        }
+        
+        /* Keyframes for the burst effect (Level Up) */
+        @keyframes burst {
+            0% { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+            50% { opacity: 1; transform: scale(1.1) rotate(0deg); }
+            100% { opacity: 0; transform: scale(1.5); }
+        }
+
+        /* Keyframes for the completion effect (slower, grander) */
+        @keyframes grand-burst {
+            0% { opacity: 0; transform: scale(0.3); }
+            20% { opacity: 1; transform: scale(1.05); }
+            80% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.5); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 加载/认证 覆盖层 -->
+<div id="loading-screen" class="loading-overlay hidden">
+    <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-blue-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    <p class="mt-4 text-xl text-blue-800">正在准备“环球语音之旅”...</p>
+</div>
+
+<!-- 头部：进度条与分数 -->
+<header class="w-full bg-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-50">
+    <div class="flex items-center space-x-4">
+        <span class="text-3xl text-yellow-500">🚢</span>
+        <div class="flex flex-col">
+            <div id="level-display" class="font-bold text-xl text-gray-700">加载中...</div>
+            <div class="text-sm text-gray-500">当前目的地</div>
+        </div>
+    </div>
+    <div class="flex items-center space-x-2">
+        <span class="text-3xl text-red-500">🔥</span>
+        <div class="flex flex-col items-end">
+            <span id="fuel-display" class="font-bold text-2xl text-red-700">0</span>
+            <span class="text-sm text-gray-500">燃料/积分</span>
+        </div>
+    </div>
+</header>
+
+<!-- 主游戏区域 -->
+<main id="game-container" class="flex-grow w-full max-w-lg p-4 flex flex-col items-center space-y-8 md:space-y-12">
+    
+    <!-- 任务卡片 -->
+    <div id="task-card" class="card bg-white w-full rounded-2xl p-6 text-center mt-6">
+        <!-- 任务描述更新 -->
+        <div class="text-gray-500 text-lg mb-4">请根据中文提示，大声读出正确的英文：</div>
+        
+        <!-- 图片区域 (现在显示英文目标词) -->
+        <div class="w-full h-40 md:h-64 bg-gray-200 rounded-xl mb-6 flex items-center justify-center overflow-hidden">
+             <!-- Placeholder Image (Now uses ENGLISH word for visual context) -->
+             <img id="item-image" src="https://placehold.co/300x300/5b95ff/ffffff?text=Loading" onerror="this.src='https://placehold.co/300x300/5b95ff/ffffff?text=Loading'" alt="英文目标词" class="w-full h-full object-cover image-transition">
+        </div>
+
+        <!-- 目标单词 (现在显示 CHINESE HINT) -->
+        <div id="target-word" class="text-5xl md:text-6xl font-extrabold text-gray-800 mb-6 tracking-wide">...</div>
+        
+        <!-- 收听按钮 (大喇叭) -->
+        <button id="listen-btn" onclick="speakTargetWord()" class="btn-xl bg-blue-500 hover:bg-blue-600 text-white w-full flex items-center justify-center space-x-3 transition">
+            <i data-lucide="volume-2" class="w-8 h-8 md:w-10 md:h-10"></i>
+            <span class="text-3xl">收听标准发音</span>
+        </button>
+    </div>
+
+    <!-- 麦克风区域 (底部中央，最大的操作区) -->
+    <div class="w-full flex flex-col items-center justify-center pb-8 space-y-4">
+        <button id="mic-btn" onclick="startListening()" class="flex flex-col items-center justify-center w-36 h-36 md:w-48 md:h-48 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-2xl transition duration-200 ease-in-out">
+            <i id="mic-icon" data-lucide="mic" class="w-12 h-12 md:w-16 md:h-16"></i>
+            <span id="mic-text" class="mt-2 text-2xl font-bold">点我说话</span>
+        </button>
+
+        <!-- 新增: 跳过并继续键 -->
+        <button id="skip-btn" onclick="closeFeedbackModal()" class="flex items-center justify-center space-x-2 text-xl font-medium text-gray-600 hover:text-gray-800 transition duration-150 p-3 rounded-xl bg-gray-200 hover:bg-gray-300 w-2/3 max-w-xs shadow-md">
+            <i data-lucide="arrow-right-circle" class="w-6 h-6"></i>
+            <span>跳过并继续 (下一题)</span>
+        </button>
+    </div>
+</main>
+
+<!-- 评分反馈弹窗 (Modal) -->
+<div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div id="modal-content" class="bg-white rounded-3xl p-8 text-center modal-enter w-full max-w-sm">
+        <div id="feedback-icon" class="text-7xl mb-4"></div>
+        <h2 id="feedback-title" class="text-4xl font-bold mb-2"></h2>
+        <p id="feedback-message" class="text-xl text-gray-700 mb-6"></p>
+        
+        <!-- 更新后的按钮容器，用于显示重试和继续按钮 -->
+        <div class="flex flex-col space-y-4">
+            <button id="retry-btn" onclick="retryTask()" class="btn-xl bg-red-500 hover:bg-red-600 text-white w-full hidden">再说一次 (重试)</button>
+            <button id="continue-btn" onclick="closeFeedbackModal()" class="btn-xl bg-blue-500 hover:bg-blue-600 text-white w-full">继续旅程</button>
+        </div>
+
+    </div>
+</div>
+
+<!-- 新增：全屏恭喜动画覆盖层 (Level Up/Completion Animation) -->
+<div id="congratulations-overlay" class="fixed inset-0 z-[1001] bg-blue-500/90 hidden flex-col items-center justify-center pointer-events-none p-4">
+    <div class="text-white text-center">
+        <!-- 动画图标：scale-50 opacity-0 是为了让动画从 0 开始 -->
+        <div id="overlay-icon" class="text-8xl mb-4 opacity-0 scale-50"></div>
+        <!-- 动画标题：text-6xl/text-8xl 动态调整 -->
+        <h1 id="overlay-title" class="text-6xl md:text-8xl font-black mb-2 opacity-0 scale-50"></h1>
+        <!-- 动画信息 -->
+        <p id="overlay-message" class="text-3xl opacity-0 scale-50"></p>
+    </div>
+</div>
+
+
+<script type="module">
+    // --- 1. FIREBASE SETUP (MANDATORY) ---
+    // 已将 Google GStatic 域名替换为 jsDelivr CDN，以提高全球（包括中国大陆）的访问稳定性
+    import { initializeApp } from "https://cdn.jsdelivr.net/npm/firebase@11.6.1/app/+esm";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://cdn.jsdelivr.net/npm/firebase@11.6.1/auth/+esm";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://cdn.jsdelivr.net/npm/firebase@11.6.1/firestore/+esm";
+    import { setLogLevel } from "https://cdn.jsdelivr.net/npm/firebase@11.6.1/firestore/+esm";
+    
+    // Global Firebase references
+    let db;
+    let auth;
+    let userId;
+    let appId;
+    
+    // State for level detection
+    let _lastKnownLevel = 1;
+
+    // Canvas provided global variables
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    appId = typeof __app_id !== 'undefined' ? __app_id : 'global-voice-journey-default-id';
+
+    const progressPath = (uid) => `artifacts/${appId}/users/${uid}/voice_journey_progress/data`;
+    
+    // --- 2. GAME DATA AND STATE ---
+
+    // 游戏关卡数据：词汇库已扩大至 100 个条目，分为 5 个级别，每级 20 个。
+    const GAME_DATA = [
+        // Level 1: 家居基础 🏡 (Items 0-19, Fuel: 10) - 目标晋级燃料: 200
+        { word: "Apple", hint: "苹果", fuel: 10, imageUrl: "https://placehold.co/300x300/e6e6fa/000000?text=Apple" },
+        { word: "Book", hint: "书", fuel: 10, imageUrl: "https://placehold.co/300x300/add8e6/000000?text=Book" },
+        { word: "Chair", hint: "椅子", fuel: 10, imageUrl: "https://placehold.co/300x300/f08080/000000?text=Chair" },
+        { word: "Television", hint: "电视", fuel: 10, imageUrl: "https://placehold.co/300x300/e9967a/000000?text=Television" },
+        { word: "Table", hint: "桌子", fuel: 10, imageUrl: "https://placehold.co/300x300/90ee90/000000?text=Table" },
+        { word: "Lamp", hint: "台灯", fuel: 10, imageUrl: "https://placehold.co/300x300/daa520/000000?text=Lamp" },
+        { word: "Window", hint: "窗户", fuel: 10, imageUrl: "https://placehold.co/300x300/ffb6c1/000000?text=Window" },
+        { word: "Door", hint: "门", fuel: 10, imageUrl: "https://placehold.co/300x300/87cefa/000000?text=Door" },
+        { word: "Bed", hint: "床", fuel: 10, imageUrl: "https://placehold.co/300x300/ffa07a/000000?text=Bed" },
+        { word: "Sofa", hint: "沙发", fuel: 10, imageUrl: "https://placehold.co/300x300/20b2aa/000000?text=Sofa" },
+        { word: "Kitchen", hint: "厨房", fuel: 10, imageUrl: "https://placehold.co/300x300/008080/ffffff?text=Kitchen" },
+        { word: "Bathroom", hint: "浴室", fuel: 10, imageUrl: "https://placehold.co/300x300/4682b4/ffffff?text=Bathroom" },
+        { word: "Key", hint: "钥匙", fuel: 10, imageUrl: "https://placehold.co/300x300/dc143c/ffffff?text=Key" },
+        { word: "Floor", hint: "地板", fuel: 10, imageUrl: "https://placehold.co/300x300/ff6347/ffffff?text=Floor" },
+        { word: "Ceiling", hint: "天花板", fuel: 10, imageUrl: "https://placehold.co/300x300/b22222/ffffff?text=Ceiling" },
+        { word: "Carpet", hint: "地毯", fuel: 10, imageUrl: "https://placehold.co/300x300/ffd700/000000?text=Carpet" },
+        { word: "Photo frame", hint: "相框", fuel: 10, imageUrl: "https://placehold.co/300x300/87ceeb/000000?text=Photo%20frame" },
+        { word: "Vase", hint: "花瓶", fuel: 10, imageUrl: "https://placehold.co/300x300/f5deb3/000000?text=Vase" },
+        { word: "Curtain", hint: "窗帘", fuel: 10, imageUrl: "https://placehold.co/300x300/da70d6/000000?text=Curtain" },
+        { word: "Balcony", hint: "阳台", fuel: 10, imageUrl: "https://placehold.co/300x300/6b8e23/ffffff?text=Balcony" },
+        
+        // Level 2: 社区交流 💬 (Items 20-39, Fuel: 15) - 目标晋级燃料: 500
+        { word: "My friend", hint: "我的朋友", fuel: 15, imageUrl: "https://placehold.co/300x300/f0e68c/000000?text=My%20friend" },
+        { word: "Nice to meet you", hint: "很高兴认识你", fuel: 15, imageUrl: "https://placehold.co/300x300/48d1cc/000000?text=Nice%20to%20meet%20you" },
+        { word: "How old are you", hint: "你多大了", fuel: 15, imageUrl: "https://placehold.co/300x300/ff7f50/000000?text=How%20old%20are%20you" },
+        { word: "I love you", hint: "我爱你", fuel: 15, imageUrl: "https://placehold.co/300x300/ff69b4/ffffff?text=I%20love%20you" },
+        { word: "Good morning", hint: "早上好", fuel: 15, imageUrl: "https://placehold.co/300x300/f4a460/000000?text=Good%20morning" },
+        { word: "Good night", hint: "晚安", fuel: 15, imageUrl: "https://placehold.co/300x300/1e90ff/ffffff?text=Good%20night" },
+        { word: "See you later", hint: "回头见", fuel: 15, imageUrl: "https://placehold.co/300x300/228b22/ffffff?text=See%20you%20later" },
+        { word: "Excuse me", hint: "不好意思", fuel: 15, imageUrl: "https://placehold.co/300x300/6a5acd/ffffff?text=Excuse%20me" },
+        { word: "Thank you", hint: "谢谢你", fuel: 15, imageUrl: "https://placehold.co/300x300/cd5c5c/ffffff?text=Thank%20you" },
+        { word: "You are welcome", hint: "不客气", fuel: 15, imageUrl: "https://placehold.co/300x300/98fb98/000000?text=You%20are%20welcome" },
+        { word: "How are you", hint: "你好吗", fuel: 15, imageUrl: "https://placehold.co/300x300/ffa07a/000000?text=How%20are%20you" },
+        { word: "I'm fine", hint: "我很好", fuel: 15, imageUrl: "https://placehold.co/300x300/20b2aa/000000?text=I'm%20fine" },
+        { word: "What's your name", hint: "你叫什么名字", fuel: 15, imageUrl: "https://placehold.co/300x300/008080/ffffff?text=What's%20your%20name" },
+        { word: "My name is", hint: "我的名字是", fuel: 15, imageUrl: "https://placehold.co/300x300/4682b4/ffffff?text=My%20name%20is" },
+        { word: "Where are you from", hint: "你来自哪里", fuel: 15, imageUrl: "https://placehold.co/300x300/dc143c/ffffff?text=Where%20are%20you%20from" },
+        { word: "I am from China", hint: "我来自中国", fuel: 15, imageUrl: "https://placehold.co/300x300/ff6347/ffffff?text=I%20am%20from%20China" },
+        { word: "What do you do", hint: "你是做什么的", fuel: 15, imageUrl: "https://placehold.co/300x300/b22222/ffffff?text=What%20do%20you%20do" },
+        { word: "I am retired", hint: "我退休了", fuel: 15, imageUrl: "https://placehold.co/300x300/ffd700/000000?text=I%20am%20retired" },
+        { word: "Do you speak English", hint: "你会说英语吗", fuel: 15, imageUrl: "https://placehold.co/300x300/87ceeb/000000?text=Do%20you%20speak%20English" },
+        { word: "A little bit", hint: "一点点", fuel: 15, imageUrl: "https://placehold.co/300x300/f5deb3/000000?text=A%20little%20bit" },
+
+        // Level 3: 户外活动 🏞️ (Items 40-59, Fuel: 20) - 目标晋级燃料: 900
+        { word: "Play chess", hint: "下棋", fuel: 20, imageUrl: "https://placehold.co/300x300/00ced1/000000?text=Play%20chess" },
+        { word: "Sing a song", hint: "唱歌", fuel: 20, imageUrl: "https://placehold.co/300x300/ff6347/ffffff?text=Sing%20a%20song" },
+        { word: "Watch a movie", hint: "看电影", fuel: 20, imageUrl: "https://placehold.co/300x300/6495ed/ffffff?text=Watch%20a%20movie" },
+        { word: "Go hiking", hint: "去徒步", fuel: 20, imageUrl: "https://placehold.co/300x300/20b2aa/ffffff?text=Go%20hiking" },
+        { word: "Listen to music", hint: "听音乐", fuel: 20, imageUrl: "https://placehold.co/300x300/ffa500/000000?text=Listen%20to%20music" },
+        { word: "Draw a picture", hint: "画画", fuel: 20, imageUrl: "https://placehold.co/300x300/d8bfd8/000000?text=Draw%20a%20picture" },
+        { word: "I like swimming", hint: "我喜欢游泳", fuel: 20, imageUrl: "https://placehold.co/300x300/40e0d0/000000?text=I%20like%20swimming" },
+        { word: "Read newspaper", hint: "看报纸", fuel: 20, imageUrl: "https://placehold.co/300x300/f0f8ff/000000?text=Read%20newspaper" },
+        { word: "Play cards", hint: "玩牌", fuel: 20, imageUrl: "https://placehold.co/300x300/9acd32/000000?text=Play%20cards" },
+        { word: "Go fishing", hint: "去钓鱼", fuel: 20, imageUrl: "https://placehold.co/300x300/008080/ffffff?text=Go%20fishing" },
+        { word: "Take photos", hint: "拍照", fuel: 20, imageUrl: "https://placehold.co/300x300/ffdead/000000?text=Take%20photos" },
+        { word: "Do yoga", hint: "做瑜伽", fuel: 20, imageUrl: "https://placehold.co/300x300/ba55d3/ffffff?text=Do%20yoga" },
+        { word: "Cook dinner", hint: "做晚饭", fuel: 20, imageUrl: "https://placehold.co/300x300/f5deb3/000000?text=Cook%20dinner" },
+        { word: "Dancing lesson", hint: "舞蹈课", fuel: 20, imageUrl: "https://placehold.co/300x300/ff1493/ffffff?text=Dancing%20lesson" },
+        { word: "Park walk", hint: "公园散步", fuel: 20, imageUrl: "https://placehold.co/300x300/8fbc8f/000000?text=Park%20walk" },
+        { word: "Visit museum", hint: "参观博物馆", fuel: 20, imageUrl: "https://placehold.co/300x300/7b68ee/ffffff?text=Visit%20museum" },
+        { word: "Weekend trip", hint: "周末旅行", fuel: 20, imageUrl: "https://placehold.co/300x300/ff7f50/000000?text=Weekend%20trip" },
+        { word: "Nature reserve", hint: "自然保护区", fuel: 20, imageUrl: "https://placehold.co/300x300/3cb371/ffffff?text=Nature%20reserve" },
+        { word: "Mountain climbing", hint: "爬山", fuel: 20, imageUrl: "https://placehold.co/300x300/a0522d/ffffff?text=Mountain%20climbing" },
+        { word: "Gardening time", hint: "园艺时间", fuel: 20, imageUrl: "https://placehold.co/300x300/cd853f/000000?text=Gardening%20time" },
+
+        // Level 4: 交通出行 🚗 (Items 60-79, Fuel: 25) - 目标晋级燃料: 1400
+        { word: "Bus stop", hint: "公交车站", fuel: 25, imageUrl: "https://placehold.co/300x300/ffa07a/000000?text=Bus%20stop" },
+        { word: "Turn left", hint: "左转", fuel: 25, imageUrl: "https://placehold.co/300x300/20b2aa/000000?text=Turn%20left" },
+        { word: "Straight ahead", hint: "直走", fuel: 25, imageUrl: "https://placehold.co/300x300/008080/ffffff?text=Straight%20ahead" },
+        { word: "Where is the airport", hint: "机场在哪里", fuel: 25, imageUrl: "https://placehold.co/300x300/87ceeb/000000?text=Where%20is%20the%20airport" },
+        { word: "Subway station", hint: "地铁站", fuel: 25, imageUrl: "https://placehold.co/300x300/4682b4/ffffff?text=Subway%20station" },
+        { word: "Ticket office", hint: "售票处", fuel: 25, imageUrl: "https://placehold.co/300x300/dc143c/ffffff?text=Ticket%20office" },
+        { word: "Is this the right way", hint: "这条路对吗", fuel: 25, imageUrl: "https://placehold.co/300x300/ff6347/ffffff?text=Is%20this%20the%20right%20way" },
+        { word: "I need a taxi", hint: "我需要一辆出租车", fuel: 25, imageUrl: "https://placehold.co/300x300/b22222/ffffff?text=I%20need%20a%20taxi" },
+        { word: "Turn right", hint: "右转", fuel: 25, imageUrl: "https://placehold.co/300x300/ffd700/000000?text=Turn%20right" },
+        { word: "Traffic light", hint: "交通灯", fuel: 25, imageUrl: "https://placehold.co/300x300/87ceeb/000000?text=Traffic%20light" },
+        { word: "Drive slowly", hint: "慢点开车", fuel: 25, imageUrl: "https://placehold.co/300x300/f5deb3/000000?text=Drive%20slowly" },
+        { word: "Parking lot", hint: "停车场", fuel: 25, imageUrl: "https://placehold.co/300x300/da70d6/000000?text=Parking%20lot" },
+        { word: "Gas station", hint: "加油站", fuel: 25, imageUrl: "https://placehold.co/300x300/6b8e23/ffffff?text=Gas%20station" },
+        { word: "High-speed rail", hint: "高铁", fuel: 25, imageUrl: "https://placehold.co/300x300/00ced1/000000?text=High-speed%20rail" },
+        { word: "Cross the road", hint: "过马路", fuel: 25, imageUrl: "https://placehold.co/300x300/d8bfd8/000000?text=Cross%20the%20road" },
+        { word: "Which platform", hint: "哪个站台", fuel: 25, imageUrl: "https://placehold.co/300x300/40e0d0/000000?text=Which%20platform" },
+        { word: "Train departure", hint: "火车出发", fuel: 25, imageUrl: "https://placehold.co/300x300/ffb6c1/000000?text=Train%20departure" },
+        { word: "Flight number", hint: "航班号", fuel: 25, imageUrl: "https://placehold.co/300x300/87cefa/000000?text=Flight%20number" },
+        { word: "Boarding gate", hint: "登机口", fuel: 25, imageUrl: "https://placehold.co/300x300/ffa07a/000000?text=Boarding%20gate" },
+        { word: "Seat belt", hint: "安全带", fuel: 25, imageUrl: "https://placehold.co/300x300/f08080/000000?text=Seat%20belt" },
+
+        // Level 5: 紧急求助 🆘 (Items 80-99, Fuel: 30) - 目标晋级燃料: 2000
+        { word: "I need help", hint: "我需要帮助", fuel: 30, imageUrl: "https://placehold.co/300x300/dc143c/ffffff?text=I%20need%20help" },
+        { word: "Call a doctor", hint: "叫医生", fuel: 30, imageUrl: "https://placehold.co/300x300/ff6347/ffffff?text=Call%20a%20doctor" },
+        { word: "Where is the police", hint: "警察在哪里", fuel: 30, imageUrl: "https://placehold.co/300x300/ffd700/000000?text=Where%20is%20the%20police" },
+        { word: "Stop!", hint: "停止！", fuel: 30, imageUrl: "https://placehold.co/300x300/b22222/ffffff?text=Stop!" },
+        { word: "I lost my passport", hint: "我丢了护照", fuel: 30, imageUrl: "https://placehold.co/300x300/4682b4/ffffff?text=I%20lost%20my%20passport" },
+        { word: "Emergency exit", hint: "紧急出口", fuel: 30, imageUrl: "https://placehold.co/300x300/1e90ff/ffffff?text=Emergency%20exit" },
+        { word: "I feel sick", hint: "我感觉不舒服", fuel: 30, imageUrl: "https://placehold.co/300x300/ff69b4/ffffff?text=I%20feel%20sick" },
+        { word: "Where is the hospital", hint: "医院在哪里", fuel: 30, imageUrl: "https://placehold.co/300x300/da70d6/ffffff?text=Where%20is%20the%20hospital" },
+        { word: "I have a fever", hint: "我发烧了", fuel: 30, imageUrl: "https://placehold.co/300x300/cd5c5c/ffffff?text=I%20have%20a%20fever" },
+        { word: "Take medicine", hint: "吃药", fuel: 30, imageUrl: "https://placehold.co/300x300/87ceeb/000000?text=Take%20medicine" },
+        { word: "Fire!", hint: "着火了！", fuel: 30, imageUrl: "https://placehold.co/300x300/8b0000/ffffff?text=Fire!" },
+        { word: "Call 911", hint: "打911", fuel: 30, imageUrl: "https://placehold.co/300x300/f08080/000000?text=Call%20911" },
+        { word: "Lost my wallet", hint: "我的钱包丢了", fuel: 30, imageUrl: "https://placehold.co/300x300/f0e68c/000000?text=Lost%20my%20wallet" },
+        { word: "Where is the consulate", hint: "领事馆在哪里", fuel: 30, imageUrl: "https://placehold.co/300x300/9acd32/000000?text=Where%20is%20the%20consulate" },
+        { word: "I need an ambulance", hint: "我需要救护车", fuel: 30, imageUrl: "https://placehold.co/300x300/7fffd4/000000?text=I%20need%20an%20ambulance" },
+        { word: "Can you translate", hint: "你能翻译一下吗", fuel: 30, imageUrl: "https://placehold.co/300x300/d8bfd8/000000?text=Can%20you%20translate" },
+        { word: "Danger!", hint: "危险！", fuel: 30, imageUrl: "https://placehold.co/300x300/ff4500/ffffff?text=Danger!" },
+        { word: "Stay calm", hint: "保持冷静", fuel: 30, imageUrl: "https://placehold.co/300x300/afeeee/000000?text=Stay%20calm" },
+        { word: "Please wait here", hint: "请在这里等", fuel: 30, imageUrl: "https://placehold.co/300x300/696969/ffffff?text=Please%20wait%20here" },
+        { word: "Give me water", hint: "给我水", fuel: 30, imageUrl: "https://placehold.co/300x300/b0e0e6/000000?text=Give%20me%20water" },
+    ];
+    
+    let currentLevelIndex = 0; // 任务计数器
+    let userFuel = 0;
+    
+    // 5个级别 + 1个最终完成级别 (Level 6)
+    const LEVEL_NAMES = [
+        "家居基础 🏡", "社区交流 💬", "户外活动 🏞️", "交通出行 🚗", "紧急求助 🆘", "环球达人 🌍" // Level 6 是通关标志
+    ];
+
+    // 升级所需的燃料
+    const LEVEL_UP_REQUIREMENTS = [0, 20, 50, 90, 140, 210];
+
+    // --- 3. SPEECH APIs SETUP ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechSynthesis = window.speechSynthesis;
+    const recognitionAvailable = !!SpeechRecognition;
+    const synthAvailable = !!SpeechSynthesis;
+    let recognition;
+
+    if (recognitionAvailable) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'en-US'; // 目标识别语言：美式英文 (en-US)
+        recognition.interimResults = false; 
+        recognition.maxAlternatives = 1; 
+    }
+
+    // --- 4. GAME FUNCTIONS ---
+    
+    // 新增函数: 撒花效果 (Confetti Effect)
+    function launchConfetti() {
+        // 检查全局的 confetti 函数是否可用 (由 CDN 引入)
+        if (typeof confetti === 'function') {
+            const duration = 5 * 1000;
+            const animationEnd = Date.now() + duration;
+            // zIndex 1002 确保在 congratulations-overlay (1001) 之上
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1002 }; 
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                const particleCount = 50 * (timeLeft / duration);
+                
+                // 从左上角发射
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                }));
+                // 从右上角发射
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                }));
+            }, 250);
+        }
+    }
+
+    
+    // 4.1. 获取当前游戏等级 (根据燃料自动确定)
+    function getCurrentGameLevel(fuelToCheck = userFuel) {
+        let level = 1;
+        for (let i = 1; i < LEVEL_UP_REQUIREMENTS.length; i++) {
+            if (fuelToCheck >= LEVEL_UP_REQUIREMENTS[i]) {
+                level = i + 1;
+            } else {
+                break;
+            }
+        }
+        // Level can go up to LEVEL_NAMES.length (which is 6, the completion level)
+        return Math.min(level, LEVEL_NAMES.length); 
+    }
+
+    // 4.2. 加载和渲染当前任务 (从当前等级的词汇库中随机抽取)
+    function loadCurrentTask() {
+        const currentLevel = getCurrentGameLevel();
+        const levelIndex = currentLevel - 1;
+
+        // 检查是否已完成所有关卡
+        if (currentLevel >= LEVEL_NAMES.length) { 
+            showCompletionScreen();
+            return;
+        }
+
+        // Level index 0 corresponds to L1, index 4 corresponds to L5.
+        // Determine the index range for the current level (20 items per level)
+        const startIndex = levelIndex * 20; // L1: 0, L2: 20, L5: 80
+        const itemsInLevel = 20;
+        
+        // Randomly select an index within the current level's range
+        const randomIndex = Math.floor(Math.random() * itemsInLevel) + startIndex;
+        const data = GAME_DATA[randomIndex];
+        
+        // 更新 UI 显示当前级别名称和数字
+        document.getElementById('level-display').textContent = `${LEVEL_NAMES[levelIndex]} (Level ${currentLevel})`;
+        
+        const itemImage = document.getElementById('item-image');
+        
+        // 目标单词现在只显示 CHINESE HINT (这是用户需要读出英文的提示)
+        document.getElementById('target-word').textContent = data.hint; 
+        
+        // 图片区域现在显示英文单词 (通过 placehold.co 服务将英文单词显示在图片中)
+        itemImage.classList.remove('loaded');
+        
+        itemImage.onload = () => {
+            itemImage.classList.add('loaded');
+        };
+
+        let textForImage = data.word;
+        textForImage = encodeURIComponent(textForImage).replace(/%20/g, '+');
+        textForImage = textForImage.replace(/!/g, '%21').replace(/,/g, '%2C'); 
+        
+        const newImageUrl = `https://placehold.co/300x300/5b95ff/ffffff?text=${textForImage}`;
+        itemImage.src = newImageUrl;
+        
+        if (itemImage.complete && itemImage.naturalWidth > 0) {
+            itemImage.onload(null);
+        }
+
+        // 确保麦克风按钮状态正确
+        document.getElementById('mic-btn').classList.remove('listening');
+        document.getElementById('mic-text').textContent = "点我说话";
+        document.getElementById('mic-btn').disabled = false;
+        
+        // 确保按钮是启用的
+        document.getElementById('listen-btn').disabled = false;
+        document.getElementById('skip-btn').disabled = false; // 启用跳过按钮
+    }
+    
+    // 4.3. 文本转语音 (收听按钮)
+    window.speakTargetWord = function() {
+        if (!synthAvailable) {
+            console.error("Text-to-Speech not supported.");
+            showFeedback('❌', '抱歉', '您的浏览器不支持语音播放功能。', 'warning', 3); 
+            return;
+        }
+
+        // 查找当前显示的中文提示对应的英文单词
+        const currentHint = document.getElementById('target-word').textContent;
+        const data = GAME_DATA.find(item => item.hint === currentHint);
+
+        if (!data) {
+             console.error("Could not find current word data for TTS.");
+             showFeedback('❌', '抱歉', '无法找到当前任务的标准发音。', 'warning', 3);
+             return;
+        }
+
+        const targetText = data.word; 
+        const utterance = new SpeechSynthesisUtterance(targetText);
+        utterance.lang = 'en-US'; 
+        
+        // 调整语速和音调，更清晰，适合老年人学习
+        utterance.rate = 0.75; // 稍慢一点
+        utterance.pitch = 1.0; 
+
+        SpeechSynthesis.speak(utterance);
+    }
+    
+    // 4.4. 语音识别 (麦克风按钮)
+    window.startListening = function() {
+        if (!recognitionAvailable) {
+            showFeedback('⚠️', '抱歉', '您的浏览器不支持语音识别功能，请尝试使用 Chrome 浏览器。', 'warning', 3); 
+            return;
+        }
+        
+        // 查找当前目标单词 (避免在 onresult 中查找)
+        const currentHint = document.getElementById('target-word').textContent;
+        const data = GAME_DATA.find(item => item.hint === currentHint);
+        if (!data) {
+            console.error("Cannot start listening: Target word data missing.");
+            showFeedback('❌', '错误', '无法确定当前任务的目标词汇。', 'danger', 1);
+            return;
+        }
+
+        document.getElementById('mic-btn').classList.add('listening');
+        document.getElementById('mic-text').textContent = "正在听您说话...";
+        document.getElementById('mic-btn').disabled = true;
+
+        recognition.onresult = (event) => {
+            const spokenText = event.results[0][0].transcript;
+            // 评分
+            evaluateResult(spokenText, data.word, data.fuel); 
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Speech Recognition Error:", event.error);
+            document.getElementById('mic-btn').classList.remove('listening');
+            document.getElementById('mic-text').textContent = "点我说话";
+            document.getElementById('mic-btn').disabled = false;
+            showFeedback('😔', '识别失败', '请确保麦克风可用，并请再次尝试清晰地发音。', 'danger', 1);
+        };
+
+        recognition.onend = () => {
+             document.getElementById('mic-btn').classList.remove('listening');
+             document.getElementById('mic-text').textContent = "点我说话";
+             document.getElementById('mic-btn').disabled = false;
+        };
+
+        try {
+             recognition.start();
+        } catch (e) {
+            console.error("Recognition start failed:", e);
+            document.getElementById('mic-btn').classList.remove('listening');
+            document.getElementById('mic-text').textContent = "点我说话";
+            document.getElementById('mic-btn').disabled = false;
+            showFeedback('⚠️', '麦克风错误', '请检查浏览器麦克风权限设置。', 'danger', 1);
+        }
+    }
+
+    // 4.5. 评分逻辑
+    let lastScoreGain = 0; // 跟踪本次获得的燃料
+    function evaluateResult(spokenText, targetWord, baseFuel) {
+        
+        const spokenLower = spokenText.toLowerCase().trim();
+        const targetLower = targetWord.toLowerCase().trim();
+
+        let score = 0;
+        let title = '';
+        let message = '';
+        let icon = '';
+        let newFuel = 0;
+
+        // 评分逻辑：使用当前关卡的 baseFuel 来计算得分
+        const perfectMatch = spokenLower === targetLower;
+        const closeMatch = spokenLower.includes(targetLower) || targetLower.includes(spokenLower);
+        const acceptableThreshold = spokenLower.length > 0 && (spokenLower.includes(targetLower.slice(0, Math.floor(targetLower.length * 0.7))));
+
+        if (perfectMatch || (closeMatch && spokenLower.length >= targetLower.length * 0.8)) {
+            score = 3;
+            newFuel = baseFuel; // 完美匹配，获得完整燃料 (L1: 10, L2: 15, ...)
+            title = '完美！👍';
+            message = `您说的是 "${spokenText}"，发音非常清晰！奖励 ${newFuel} 燃料！`;
+            icon = '🥳';
+        } else if (acceptableThreshold) {
+            score = 2;
+            newFuel = Math.floor(baseFuel / 2); // 尚可，获得一半燃料
+            title = '尚可！👏';
+            message = `您说的是 "${spokenText}"。发音听得懂，再练习一次会更好！奖励 ${newFuel} 燃料。`;
+            icon = '😊';
+        } else {
+            score = 1;
+            newFuel = 1; // 鼓励分
+            title = '请再试一次 👂';
+            message = `您说的是 "${spokenText}"。再听一次标准发音，然后大胆说出来！奖励 ${newFuel} 燃料。`;
+            icon = '🧐';
+        }
+
+        lastScoreGain = newFuel;
+        userFuel += newFuel;
+        saveProgress(userFuel); // 燃料更新会触发 onSnapshot，然后在 onSnapshot 中进行 level check
+        
+        // 传递 score 给 showFeedback 以控制重试按钮
+        showFeedback(icon, title, message, score > 1 ? 'success' : 'warning', score); 
+    }
+
+    // 4.6. 检查升级
+    function checkLevelUp(newFuel) {
+        const previousLevel = _lastKnownLevel;
+        const currentLevel = getCurrentGameLevel(newFuel);
+        
+        if (currentLevel > previousLevel) {
+            // 立即更新已知等级，防止多次触发
+            _lastKnownLevel = currentLevel; 
+
+            if (currentLevel >= LEVEL_NAMES.length) {
+                // Level up to Level 6 (Completion) - 触发通关动画
+                setTimeout(showCompletionScreen, 500);
+            } else {
+                // Normal Level Up - 触发升级动画
+                launchConfetti(); // ** 升级时触发撒花效果 **
+                const nextLevelName = LEVEL_NAMES[currentLevel - 1]; 
+                showAnimatedOverlay('🚀', '恭喜升级！', `您已解锁新目的地：${nextLevelName}！`); 
+            }
+        }
+    }
+    
+    // 4.7. 显示最终通关界面 (现在触发动画和通关 Modal)
+    function showCompletionScreen() {
+        // 确保游戏操作被禁用
+        document.getElementById('mic-btn').disabled = true;
+        document.getElementById('listen-btn').disabled = true;
+        document.getElementById('skip-btn').disabled = true; // 禁用跳过按钮
+        
+        // 1. 显示大大的通关动画
+        showAnimatedOverlay('🏆🌍', '🎉 环球达人！🎉', '恭喜您！所有发音任务圆满完成！', true);
+
+        // 2. 稍后显示带有重置按钮的 Modal
+        setTimeout(() => {
+            showFeedback('🏆', '环球旅程圆满完成！', '您已经掌握了所有核心发音任务，可以重新开始挑战更完美的成绩！', 'success', 3, true); 
+        }, 500); 
+    }
+
+    // 4.8. 重试当前任务 (不跳到下一题)
+    window.retryTask = function() {
+        document.getElementById('feedback-modal').classList.add('hidden');
+    }
+
+    // 4.9. 继续旅程（成功完成或选择跳过）
+    window.closeFeedbackModal = function() {
+        document.getElementById('feedback-modal').classList.add('hidden');
+        
+        // 如果是通关界面，关闭后不加载新任务
+        if (getCurrentGameLevel() >= LEVEL_NAMES.length) {
+             return;
+        }
+
+        currentLevelIndex++;
+        loadCurrentTask();
+    }
+
+
+    // --- 5. UI/FEEDBACK UTILITIES ---
+    
+    // 5.0. 恭喜动画全屏覆盖层
+    function showAnimatedOverlay(icon, title, message, isCompletion = false) {
+        const overlay = document.getElementById('congratulations-overlay');
+        const overlayIcon = document.getElementById('overlay-icon');
+        const overlayTitle = document.getElementById('overlay-title');
+        const overlayMessage = document.getElementById('overlay-message');
+
+        overlayIcon.textContent = icon;
+        overlayTitle.textContent = title;
+        overlayMessage.textContent = message;
+
+        // Reset classes
+        overlay.classList.remove('bg-blue-500/90', 'bg-green-600/95', 'hidden');
+
+        // Set styles based on type
+        if (isCompletion) {
+            overlay.classList.add('bg-green-600/95');
+            overlayIcon.style.animation = 'grand-burst 10.0s ease-out forwards';
+            overlayTitle.style.animation = 'grand-burst 10.0s ease-out 0.2s forwards';
+            overlayMessage.style.animation = 'grand-burst 10.0s ease-out 0.4s forwards';
+            overlayTitle.classList.add('text-8xl');
+            overlayTitle.classList.remove('text-6xl');
+        } else {
+            overlay.classList.add('bg-blue-500/90');
+            // 注意：升级时的动画时间可以设置得比通关短一些
+            overlayIcon.style.animation = 'burst 3.0s ease-out forwards'; 
+            overlayTitle.style.animation = 'burst 3.0s ease-out 0.2s forwards';
+            overlayMessage.style.animation = 'burst 3.0s ease-out 0.4s forwards';
+            overlayTitle.classList.add('text-6xl');
+            overlayTitle.classList.remove('text-8xl');
+        }
+
+        // Show overlay by adding 'overlay-visible'
+        overlay.classList.add('overlay-visible');
+
+        // Hide overlay after animation time
+        const duration = isCompletion ? 10000 : 3000; // 升级动画持续 3秒
+        setTimeout(() => {
+            overlay.classList.remove('overlay-visible');
+            overlay.classList.add('hidden'); 
+            // Clear animation styles to reset for next use
+            overlayIcon.style.animation = ''; 
+            overlayTitle.style.animation = '';
+            overlayMessage.style.animation = '';
+        }, duration);
+    }
+
+    function showFeedback(icon, title, message, type, score, isCompletion = false) { 
+        const modal = document.getElementById('feedback-modal');
+        const modalContent = document.getElementById('modal-content');
+        const retryBtn = document.getElementById('retry-btn');
+        const continueBtn = document.getElementById('continue-btn');
+        
+        // 设置内容
+        document.getElementById('feedback-icon').textContent = icon;
+        document.getElementById('feedback-title').textContent = title;
+        document.getElementById('feedback-message').textContent = message;
+
+        // 根据分数和类型设置按钮状态
+        if (isCompletion) {
+            // 通关界面：只显示重置按钮
+            retryBtn.classList.add('hidden');
+            continueBtn.textContent = '重新开始游戏';
+            continueBtn.onclick = resetGame; // 绑定重置函数
+            document.getElementById('mic-btn').disabled = true; // 禁用游戏按钮
+            document.getElementById('listen-btn').disabled = true;
+            document.getElementById('skip-btn').disabled = true; // 禁用跳过按钮
+        } else if (score === 1) {
+            // 低分时显示重试按钮
+            retryBtn.classList.remove('hidden');
+            continueBtn.textContent = '跳过，前往下一站';
+            continueBtn.onclick = closeFeedbackModal;
+        } else {
+            // 高分时只显示继续按钮
+            retryBtn.classList.add('hidden');
+            continueBtn.textContent = '继续旅程';
+            continueBtn.onclick = closeFeedbackModal;
+        }
+
+        // 根据类型设置颜色
+        const bgColor = {
+            'success': 'bg-green-100 border-green-500',
+            'warning': 'bg-yellow-100 border-yellow-500',
+            'danger': 'bg-red-100 border-red-500',
+        }[type] || 'bg-white border-gray-300';
+
+        modalContent.className = `bg-white rounded-3xl p-8 text-center w-full max-w-sm border-4 ${bgColor}`;
+
+        // 显示动画
+        modalContent.classList.remove('modal-enter-active');
+        modalContent.classList.add('modal-enter');
+        modal.classList.remove('hidden');
+
+        setTimeout(() => {
+            modalContent.classList.remove('modal-enter');
+            modalContent.classList.add('modal-enter-active');
+        }, 10);
+    }
+
+    function showLoading() {
+        document.getElementById('loading-screen').classList.remove('hidden');
+        document.getElementById('game-container').classList.add('hidden');
+    }
+
+    function hideLoading() {
+        document.getElementById('loading-screen').classList.add('hidden');
+        document.getElementById('game-container').classList.remove('hidden');
+    }
+
+
+    // --- 6. FIREBASE & DATA PERSISTENCE ---
+
+    async function initializeFirebase() {
+        showLoading();
+        
+        if (!firebaseConfig) {
+             console.error("Firebase config is missing. Using default/volatile state.");
+             auth = { currentUser: { uid: crypto.randomUUID() } }; // Mock auth
+             userId = auth.currentUser.uid;
+             loadCurrentTask();
+             updateUI();
+             hideLoading();
+             return;
+        }
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            setLogLevel('Debug'); 
+
+            let user;
+            if (initialAuthToken) {
+                user = (await signInWithCustomToken(auth, initialAuthToken)).user;
+            } else {
+                user = (await signInAnonymously(auth)).user;
+            }
+            userId = user.uid;
+
+            let isFirstSnapshot = true; // 跟踪是否为第一次快照加载
+
+            // Start listening for real-time updates to the progress
+            onSnapshot(doc(db, progressPath(userId)), (docSnapshot) => {
+                const oldFuel = userFuel;
+                let shouldLoadTask = false;
+
+                if (docSnapshot.exists()) {
+                    const data = docSnapshot.data();
+                    userFuel = data.fuel || 0;
+                    currentLevelIndex = data.currentLevelIndex || 0;
+                } else {
+                    userFuel = 0;
+                    currentLevelIndex = 0;
+                    saveProgress(userFuel); // Save initial state
+                }
+
+                // 1. 检查升级 (runs on subsequent snapshots where fuel increases)
+                if (userFuel >= oldFuel) { 
+                    checkLevelUp(userFuel);
+                }
+
+                // 2. 确定是否需要加载新任务
+                const hasLevelChanged = getCurrentGameLevel(oldFuel) !== getCurrentGameLevel(userFuel);
+
+                if (isFirstSnapshot || hasLevelChanged) {
+                    shouldLoadTask = true;
+                }
+
+                // 3. 更新 UI
+                updateUI();
+                
+                // 4. 加载任务
+                if (shouldLoadTask) {
+                    loadCurrentTask();
+                }
+
+                // 5. 隐藏加载界面
+                if (isFirstSnapshot) { 
+                    isFirstSnapshot = false; 
+                    hideLoading();
+                }
+                
+            }, (error) => {
+                console.error("Error listening to progress:", error);
+                hideLoading();
+            });
+
+        } catch (error) {
+            console.error("Firebase Initialization Failed:", error);
+            showFeedback('❌', '系统错误', '无法连接到数据服务器，游戏进度可能无法保存。', 'danger', 3);
+            userId = crypto.randomUUID();
+            loadCurrentTask();
+            updateUI();
+            hideLoading();
+        }
+    }
+
+    function saveProgress(fuel) {
+        if (!db || !userId) return;
+
+        const data = {
+            fuel: fuel,
+            currentLevelIndex: currentLevelIndex, 
+            lastUpdated: new Date()
+        };
+        
+        setDoc(doc(db, progressPath(userId)), data).catch(error => {
+            console.error("Error saving progress:", error);
+        });
+    }
+
+    // 7.1. 重置游戏（在通关后调用）
+    window.resetGame = function() {
+        userFuel = 0;
+        currentLevelIndex = 0;
+        _lastKnownLevel = 1;
+
+        if (db && userId) {
+            saveProgress(0); // 重置 Firestore 进度
+        }
+        
+        // 启用按钮
+        document.getElementById('mic-btn').disabled = false;
+        document.getElementById('listen-btn').disabled = false;
+        document.getElementById('skip-btn').disabled = false; // 启用跳过按钮
+        
+        document.getElementById('feedback-modal').classList.add('hidden');
+        updateUI();
+        loadCurrentTask();
+    }
+
+    function updateUI() {
+        document.getElementById('fuel-display').textContent = userFuel;
+        const currentLevel = getCurrentGameLevel();
+        const levelIndex = currentLevel - 1;
+        // 确保不越界访问 LEVEL_NAMES
+        if (levelIndex < LEVEL_NAMES.length) {
+            document.getElementById('level-display').textContent = `${LEVEL_NAMES[levelIndex]} (Level ${currentLevel})`;
+        } else {
+             // 游戏完成后的显示
+             document.getElementById('level-display').textContent = `环球达人 🏆`;
+        }
+    }
+
+    // PWA: 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js').then(registration => {
+                console.log('Service Worker registration successful with scope: ', registration.scope);
+            }).catch(error => {
+                console.log('Service Worker registration failed: ', error);
+            });
+        });
+    }
+
+    // --- 7. INITIALIZATION ---
+
+    window.onload = function() {
+        // Replace Lucide icons
+        lucide.createIcons();
+        
+        // Initialize Firebase and start game logic
+        initializeFirebase();
+    }
+</script>
+
+</body>
+</html>
