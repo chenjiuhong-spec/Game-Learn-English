@@ -7,47 +7,46 @@
     <!-- 引入 Tailwind CSS CDN，用于快速构建响应式和美观的界面 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 自定义CSS：确保所有元素都使用非常大的字体 */
+        /* 自定义CSS：调整字体大小以适应手机单页视图，但仍需保持高可读性 */
         body {
             font-family: 'Inter', 'Microsoft YaHei', 'SimHei', sans-serif;
             background-color: #e0f7fa; /* 非常浅的浅蓝色底 */
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            min-height: 100vh;
-            padding: 1rem;
-            padding-top: 2rem;
+            /* 移除 min-height: 100vh 以防止在内容压缩后仍然强制页面高度 */
+            padding: 0.5rem; /* 减少整体页边距 */
+            padding-top: 1rem;
         }
 
-        /* 强制所有文本都非常大 */
-        .text-xl-plus { font-size: 1.5rem; line-height: 2rem; }
-        .text-2xl-plus { font-size: 2rem; line-height: 2.5rem; }
-        .text-3xl-plus { font-size: 2.5rem; line-height: 3rem; }
-        .text-4xl-plus { font-size: 3rem; line-height: 3.5rem; }
-        /* 确保巨大的表情符号可见，并添加光晕效果 */
+        /* 调整字体大小，使用更小的尺寸以适应手机屏幕，但保持比默认文本大 */
+        .text-xl-plus { font-size: 1.25rem; line-height: 1.75rem; } /* text-xl */
+        .text-2xl-plus { font-size: 1.5rem; line-height: 2rem; } /* text-2xl */
+        .text-3xl-plus { font-size: 1.875rem; line-height: 2.25rem; } /* text-3xl */
+        .text-4xl-plus { font-size: 2.5rem; line-height: 3rem; } /* text-4xl */
+        
+        /* 调整巨大的表情符号大小，确保在模态框中不会溢出 */
         .text-emoji-giant { 
-            font-size: 8rem; /* 约 128px */
+            font-size: 5rem; /* 约 80px */
             line-height: 1;
-            /* 添加黄色发光效果，让表情符号更突出 */
-            text-shadow: 0 0 15px rgba(255, 255, 0, 0.8); 
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.8); 
         }
 
-
-        /* 隐藏滚动条但允许内容滚动 */
+        /* 隐藏滚动条但允许内容滚动 (在手机上通常不需要) */
         body::-webkit-scrollbar { display: none; }
         body { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* 自定义按钮样式，增加视觉吸引力 */
         .action-button {
             transition: transform 0.1s;
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* 略微减小阴影 */
         }
         .action-button:active {
             transform: scale(0.95);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
         }
         
-        /* 模态框背景，确保点击外部不关闭 */
+        /* 模态框背景 */
         .modal-overlay {
             background-color: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(2px);
@@ -67,8 +66,8 @@
         }
         .confetti-piece {
             position: absolute;
-            width: 10px;
-            height: 20px;
+            width: 8px; /* 减小撒花片大小 */
+            height: 16px; 
             background-color: #ffc107; /* Yellow */
             opacity: 0;
             transform-origin: 50% 50%;
@@ -84,42 +83,42 @@
 <body class="bg-blue-50">
     <div id="app" class="w-full max-w-lg flex flex-col items-center">
 
-        <!-- 顶部信息栏: Level 和 Score -->
-        <div class="flex justify-between w-full p-4 mb-4 rounded-xl bg-white shadow-lg">
+        <!-- 顶部信息栏: Level 和 Score (减少 p-2 mt-2 mb-2) -->
+        <div class="flex justify-between w-full p-2 mb-3 rounded-xl bg-white shadow-lg">
             
-            <!-- Level Display -->
-            <div class="flex items-center space-x-3 bg-blue-100 p-3 rounded-xl shadow-inner">
-                <span id="level-icon" class="text-3xl-plus">🏠</span>
+            <!-- Level Display (减少 p-2) -->
+            <div class="flex items-center space-x-2 bg-blue-100 p-2 rounded-xl shadow-inner">
+                <span id="level-icon" class="text-2xl-plus">🏠</span>
                 <div class="flex flex-col">
                     <span class="text-xl-plus font-bold text-gray-700">第 <span id="current-level-num">1</span> 级</span>
                     <span id="level-name" class="text-2xl-plus font-extrabold text-blue-700">家居基础</span>
                 </div>
             </div>
 
-            <!-- Score/Fuel Display -->
-            <div class="flex items-center space-x-3 bg-red-100 p-3 rounded-xl shadow-inner">
-                <span class="text-3xl-plus">🔥</span>
+            <!-- Score/Fuel Display (减少 p-2) -->
+            <div class="flex items-center space-x-2 bg-red-100 p-2 rounded-xl shadow-inner">
+                <span class="text-2xl-plus">🔥</span>
                 <div class="flex flex-col items-end">
-                    <span class="text-xl-plus font-bold text-gray-700">燃料/积分</span>
+                    <span class="text-xl-plus font-bold text-gray-700">积分</span>
                     <span id="score-display" class="text-2xl-plus font-extrabold text-red-700">0</span>
                 </div>
             </div>
         </div>
 
-        <!-- 主要学习卡片 (白色的长方形框) -->
-        <div class="w-full bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center space-y-6 mb-8">
+        <!-- 主要学习卡片 (白色的长方形框) (减少 p-4 mb-4) -->
+        <div class="w-full bg-white p-4 rounded-3xl shadow-2xl flex flex-col items-center space-y-4 mb-4">
             <p class="text-xl-plus font-semibold text-gray-800 self-start">大声读出正确的英文：</p>
 
-            <!-- 英文和收听按钮的蓝色框 -->
-            <div class="w-full bg-blue-600 p-6 rounded-2xl shadow-inner flex flex-col items-center space-y-4 text-center">
+            <!-- 英文和收听按钮的蓝色框 (减少 p-4) -->
+            <div class="w-full bg-blue-600 p-4 rounded-2xl shadow-inner flex flex-col items-center space-y-3 text-center">
                 <span id="english-text" class="text-4xl-plus font-black text-white leading-snug">Hello</span>
                 
                 <!-- 新增状态提示栏，不会覆盖英文句子 -->
-                <p id="speech-status" class="text-2xl-plus font-bold text-yellow-300 hidden">点我说话</p>
+                <p id="speech-status" class="text-xl-plus font-bold text-yellow-300 hidden">点我说话</p>
 
-                <!-- 收听标准发音按钮 -->
-                <button onclick="handleTTS()" class="action-button flex items-center justify-center space-x-3 bg-blue-800 text-white py-3 px-6 rounded-full w-full max-w-xs transition duration-150 ease-in-out">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                <!-- 收听标准发音按钮 (减少 padding 和字体) -->
+                <button onclick="handleTTS()" class="action-button flex items-center justify-center space-x-2 bg-blue-800 text-white py-2 px-4 rounded-full w-full max-w-xs transition duration-150 ease-in-out">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 3v14a1 1 0 01-1.707.707L6.683 15H4a1 1 0 01-1-1V6a1 1 0 011-1h2.683l2.21-2.21A1 1 0 019.383 3.076zM12 7a1 1 0 000 6.945A7.001 7.001 0 0015.42 10 7.001 7.001 0 0012 7z" clip-rule="evenodd" />
                     </svg>
                     <span class="text-xl-plus font-bold">收听标准发音</span>
@@ -127,21 +126,21 @@
             </div>
 
             <!-- 中文翻译 -->
-            <p id="chinese-translation" class="text-3xl-plus font-bold text-gray-600 pt-2">你好</p>
+            <p id="chinese-translation" class="text-3xl-plus font-bold text-gray-600 pt-1">你好</p>
         </div>
         
-        <!-- 点我说话按钮 (圆形红底) -->
-        <button id="speak-button" onclick="handleSpeechRecognition()" class="action-button flex flex-col items-center justify-center bg-red-600 text-white w-40 h-40 rounded-full transition duration-300 ease-in-out hover:bg-red-700 active:bg-red-800 shadow-2xl mb-8">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" viewBox="0 0 20 20" fill="currentColor">
+        <!-- 点我说话按钮 (圆形红底) (缩小尺寸: w-32 h-32; 减少 mb-4) -->
+        <button id="speak-button" onclick="handleSpeechRecognition()" class="action-button flex flex-col items-center justify-center bg-red-600 text-white w-32 h-32 rounded-full transition duration-300 ease-in-out hover:bg-red-700 active:bg-red-800 shadow-2xl mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4z" clip-rule="evenodd" />
                 <path fill-rule="evenodd" d="M12 6.5a1 1 0 01-2 0v2a1 1 0 012 0v-2zm-2-4a5 5 0 00-5 5v2.383a1 1 0 01-.894.894L4 12v3h12v-3l-1.106-1.106a1 1 0 01-.894-.894V7.5a5 5 0 00-5-5zM14 15.5a1 1 0 100-2 1 1 0 000 2zM6 15.5a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
             </svg>
             <span class="text-xl-plus font-bold mt-1">点我说话</span>
         </button>
 
-        <!-- 跳过这一题按钮 (灰色) -->
-        <button id="skip-button" onclick="skipQuestion()" class="action-button flex items-center space-x-2 text-gray-500 py-2 px-4 rounded-full transition duration-150 ease-in-out hover:bg-gray-200">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+        <!-- 跳过这一题按钮 (灰色) (减少 padding 和字体) -->
+        <button id="skip-button" onclick="skipQuestion()" class="action-button flex items-center space-x-1 text-gray-500 py-1 px-3 rounded-full transition duration-150 ease-in-out hover:bg-gray-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             <span class="text-xl-plus font-semibold">跳过这一题 (不给积分)</span>
@@ -806,20 +805,20 @@
             if (type === 'feedback') {
                 if (isSuccess) {
                     title = "🎉 发音完美！";
-                    contentHTML = `<p class="text-4xl-plus font-bold text-green-700 mt-4">奖励 +${data.score} 积分！</p>`;
+                    contentHTML = `<p class="text-3xl-plus font-bold text-green-700 mt-4">奖励 +${data.score} 积分！</p>`;
                     // 成功反馈：点击后关闭模态框并加载新句子
-                    buttonsHTML = `<button onclick="closeModal(); loadNewSentence()" class="action-button bg-green-600 hover:bg-green-700 text-white p-4 rounded-full text-2xl-plus font-bold w-full">继续学习</button>`;
+                    buttonsHTML = `<button onclick="closeModal(); loadNewSentence()" class="action-button bg-green-600 hover:bg-green-700 text-white p-3 rounded-full text-2xl-plus font-bold w-full">继续学习</button>`;
                     duration = 0; // 成功也需要用户手动关闭，防止错过积分信息
                 } else {
                     title = "🤔 发音有点不准确";
                     contentHTML = `
-                        <p class="text-2xl-plus font-bold text-gray-700 mt-4 mb-4">请再仔细听听原文并重试。</p>
+                        <p class="text-2xl-plus font-bold text-gray-700 mt-4 mb-3">请再仔细听听原文并重试。</p>
                         ${data.recognizedText ? `<p class="text-xl-plus text-red-500">（您说的是: ${data.recognizedText}）</p>` : ''}
                     `;
                     // 失败反馈：点击后关闭模态框 (不加载新句子，让用户重试当前题)
                     buttonsHTML = `
-                        <button onclick="closeModal()" class="action-button bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full text-2xl-plus font-bold w-full mb-3">再试一次</button>
-                        <button onclick="closeModal(); loadNewSentence()" class="action-button bg-gray-500 hover:bg-gray-600 text-white p-4 rounded-full text-2xl-plus font-bold w-full">跳过 (不给积分)</button>
+                        <button onclick="closeModal()" class="action-button bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full text-2xl-plus font-bold w-full mb-3">再试一次</button>
+                        <button onclick="closeModal(); loadNewSentence()" class="action-button bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-full text-2xl-plus font-bold w-full">跳过 (不给积分)</button>
                     `;
                     duration = 0; // 失败模态框需要手动关闭
                 }
@@ -841,23 +840,23 @@
                     <p class="text-3xl-plus font-bold text-green-700 mt-4">恭喜您，完成了所有等级！</p>
                     <p class="text-2xl-plus text-gray-700">最终总积分：${data.finalScore}</p>
                 `;
-                buttonsHTML = `<button onclick="closeModal(); initGame(0);" class="action-button bg-green-600 hover:bg-green-700 text-white p-4 rounded-full text-2xl-plus font-bold w-full">从头再玩</button>`;
+                buttonsHTML = `<button onclick="closeModal(); initGame(0);" class="action-button bg-green-600 hover:bg-green-700 text-white p-3 rounded-full text-2xl-plus font-bold w-full">从头再玩</button>`;
                 duration = 10000; // 10秒持续
                 createConfetti(duration);
             } else if (type === 'info') {
                 title = data.title || "提示";
                 contentHTML = `<p class="text-2xl-plus font-bold text-gray-700 mt-4">${data.message}</p>`;
                 // 普通信息框：点击后关闭
-                buttonsHTML = `<button onclick="closeModal()" class="action-button bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full text-2xl-plus font-bold w-full">好的</button>`;
+                buttonsHTML = `<button onclick="closeModal()" class="action-button bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full text-2xl-plus font-bold w-full">好的</button>`;
                 duration = 0;
             }
 
             const modalHTML = `
                 <div class="modal-overlay fixed inset-0 flex items-center justify-center p-4">
-                    <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center animate-in zoom-in duration-500">
-                        <h2 class="text-4xl-plus font-extrabold mb-4 text-blue-800">${title}</h2>
+                    <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center animate-in zoom-in duration-500">
+                        <h2 class="text-4xl-plus font-extrabold mb-3 text-blue-800">${title}</h2>
                         ${contentHTML}
-                        <div class="mt-8">${buttonsHTML}</div>
+                        <div class="mt-6">${buttonsHTML}</div>
                     </div>
                 </div>
             `;
