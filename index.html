@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乐学英语 - 专为长者设计</title>
+    <!-- 引入 Tailwind CSS CDN，用于快速构建响应式和美观的界面 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自定义CSS：确保所有元素都使用非常大的字体 */
+        body {
+            font-family: 'Inter', 'Microsoft YaHei', 'SimHei', sans-serif;
+            background-color: #e0f7fa; /* 非常浅的浅蓝色底 */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 1rem;
+            padding-top: 2rem;
+        }
+
+        /* 强制所有文本都非常大 */
+        .text-xl-plus { font-size: 1.5rem; line-height: 2rem; }
+        .text-2xl-plus { font-size: 2rem; line-height: 2.5rem; }
+        .text-3xl-plus { font-size: 2.5rem; line-height: 3rem; }
+        .text-4xl-plus { font-size: 3rem; line-height: 3.5rem; }
+        /* 确保巨大的表情符号可见，并添加光晕效果 */
+        .text-emoji-giant { 
+            font-size: 8rem; /* 约 128px */
+            line-height: 1;
+            /* 添加黄色发光效果，让表情符号更突出 */
+            text-shadow: 0 0 15px rgba(255, 255, 0, 0.8); 
+        }
+
+
+        /* 隐藏滚动条但允许内容滚动 */
+        body::-webkit-scrollbar { display: none; }
+        body { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 自定义按钮样式，增加视觉吸引力 */
+        .action-button {
+            transition: transform 0.1s;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+        .action-button:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 模态框背景，确保点击外部不关闭 */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 50;
+        }
+
+        /* 级别升级撒花效果 (Confetti) */
+        .confetti {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 100;
+        }
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 20px;
+            background-color: #ffc107; /* Yellow */
+            opacity: 0;
+            transform-origin: 50% 50%;
+            animation: fall 10s linear infinite;
+        }
+        @keyframes fall {
+            0% { opacity: 1; transform: translate(var(--x, 0), -100px) rotate(0deg); }
+            100% { opacity: 0; transform: translate(var(--x, 0), 100vh) rotate(720deg); }
+        }
+
+    </style>
+</head>
+<body class="bg-blue-50">
+    <div id="app" class="w-full max-w-lg flex flex-col items-center">
+
+        <!-- 顶部信息栏: Level 和 Score -->
+        <div class="flex justify-between w-full p-4 mb-4 rounded-xl bg-white shadow-lg">
+            
+            <!-- Level Display -->
+            <div class="flex items-center space-x-3 bg-blue-100 p-3 rounded-xl shadow-inner">
+                <span id="level-icon" class="text-3xl-plus">🏠</span>
+                <div class="flex flex-col">
+                    <span class="text-xl-plus font-bold text-gray-700">第 <span id="current-level-num">1</span> 级</span>
+                    <span id="level-name" class="text-2xl-plus font-extrabold text-blue-700">家居基础</span>
+                </div>
+            </div>
+
+            <!-- Score/Fuel Display -->
+            <div class="flex items-center space-x-3 bg-red-100 p-3 rounded-xl shadow-inner">
+                <span class="text-3xl-plus">🔥</span>
+                <div class="flex flex-col items-end">
+                    <span class="text-xl-plus font-bold text-gray-700">燃料/积分</span>
+                    <span id="score-display" class="text-2xl-plus font-extrabold text-red-700">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要学习卡片 (白色的长方形框) -->
+        <div class="w-full bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center space-y-6 mb-8">
+            <p class="text-xl-plus font-semibold text-gray-800 self-start">大声读出正确的英文：</p>
+
+            <!-- 英文和收听按钮的蓝色框 -->
+            <div class="w-full bg-blue-600 p-6 rounded-2xl shadow-inner flex flex-col items-center space-y-4 text-center">
+                <span id="english-text" class="text-4xl-plus font-black text-white leading-snug">Hello</span>
+                
+                <!-- 新增状态提示栏，不会覆盖英文句子 -->
+                <p id="speech-status" class="text-2xl-plus font-bold text-yellow-300 hidden">点我说话</p>
+
+                <!-- 收听标准发音按钮 -->
+                <button onclick="handleTTS()" class="action-button flex items-center justify-center space-x-3 bg-blue-800 text-white py-3 px-6 rounded-full w-full max-w-xs transition duration-150 ease-in-out">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 3v14a1 1 0 01-1.707.707L6.683 15H4a1 1 0 01-1-1V6a1 1 0 011-1h2.683l2.21-2.21A1 1 0 019.383 3.076zM12 7a1 1 0 000 6.945A7.001 7.001 0 0015.42 10 7.001 7.001 0 0012 7z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-xl-plus font-bold">收听标准发音</span>
+                </button>
+            </div>
+
+            <!-- 中文翻译 -->
+            <p id="chinese-translation" class="text-3xl-plus font-bold text-gray-600 pt-2">你好</p>
+        </div>
+        
+        <!-- 点我说话按钮 (圆形红底) -->
+        <button id="speak-button" onclick="handleSpeechRecognition()" class="action-button flex flex-col items-center justify-center bg-red-600 text-white w-40 h-40 rounded-full transition duration-300 ease-in-out hover:bg-red-700 active:bg-red-800 shadow-2xl mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4z" clip-rule="evenodd" />
+                <path fill-rule="evenodd" d="M12 6.5a1 1 0 01-2 0v2a1 1 0 012 0v-2zm-2-4a5 5 0 00-5 5v2.383a1 1 0 01-.894.894L4 12v3h12v-3l-1.106-1.106a1 1 0 01-.894-.894V7.5a5 5 0 00-5-5zM14 15.5a1 1 0 100-2 1 1 0 000 2zM6 15.5a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+            </svg>
+            <span class="text-xl-plus font-bold mt-1">点我说话</span>
+        </button>
+
+        <!-- 跳过这一题按钮 (灰色) -->
+        <button id="skip-button" onclick="skipQuestion()" class="action-button flex items-center space-x-2 text-gray-500 py-2 px-4 rounded-full transition duration-150 ease-in-out hover:bg-gray-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span class="text-xl-plus font-semibold">跳过这一题 (不给积分)</span>
+        </button>
+
+        <!-- 模态框容器 -->
+        <div id="modal-container"></div>
+        
+        <!-- 撒花容器 -->
+        <div id="confetti-container" class="confetti"></div>
+    </div>
+
+    <script>
+        // =================================================================
+        // 游戏配置和数据 (硬编码 - 满足50个句子/单词的要求)
+        // =================================================================
+        
+        const SCORE_TO_LEVEL_UP = 20; // 升级所需积分
+        const MAX_LEVEL = 5; // 游戏最大等级
+
+        const LEVEL_DATA = {
+            1: { 
+                name: "家居基础", 
+                icon: "🏠", 
+                score: 10,
+                sentences: [
+                    ["This is my home.", "这是我的家。"],
+                    ["I am cleaning the kitchen.", "我正在打扫厨房。"],
+                    ["The light is on.", "灯亮着。"],
+                    ["Please close the window.", "请关上窗户。"],
+                    ["Where is the remote?", "遥控器在哪里？"],
+                    ["I need to buy a new sofa.", "我需要买一个新沙发。"],
+                    ["Please wash your hands.", "请洗手。"],
+                    ["Turn off the light when you leave.", "离开时请关灯。"],
+                    ["Is it hot in here?", "这里热吗？"],
+                    ["I am home!", "我回来了！"],
+                    ["The bed is soft.", "床很软。"],
+                    ["My glasses are on the table.", "我的眼镜在桌子上。"],
+                    ["I'm going to sleep now.", "我现在要去睡觉了。"],
+                    ["I need a cup of tea.", "我需要一杯茶。"],
+                    ["Where is the bathroom?", "洗手间在哪里？"],
+                    ["The key is in the lock.", "钥匙在锁里。"],
+                    ["The floor is clean.", "地板很干净。"],
+                    ["Dinner is ready.", "晚饭准备好了。"],
+                    ["I like this chair.", "我喜欢这把椅子。"],
+                    ["The door is open.", "门开着。"],
+                    ["Let's watch TV.", "我们看电视吧。"],
+                    ["My dog is sleeping.", "我的狗在睡觉。"],
+                    ["I need a blanket.", "我需要一条毯子。"],
+                    ["The clock is fast.", "这个钟快了。"],
+                    ["Where are my shoes?", "我的鞋在哪里？"],
+                    ["I will call you later.", "我稍后给你打电话。"],
+                    ["It's time to eat breakfast.", "是时候吃早饭了。"],
+                    ["I can't find my phone.", "我找不到我的手机。"],
+                    ["The water is boiling.", "水开了。"],
+                    ["I need to hang up the clothes.", "我需要晾衣服。"],
+                    ["The mirror is dirty.", "镜子脏了。"],
+                    ["I'm reading a book.", "我正在看书。"],
+                    ["Please open the curtain.", "请拉开窗帘。"],
+                    ["The washing machine is running.", "洗衣机正在运行。"],
+                    ["Do you like this color?", "你喜欢这个颜色吗？"],
+                    ["I feel cold.", "我觉得冷。"],
+                    ["This is a lovely picture.", "这是一张可爱的照片。"],
+                    ["I am organizing my desk.", "我正在整理我的桌子。"],
+                    ["The heating is on.", "暖气开着。"],
+                    ["I bought some fresh fruit.", "我买了一些新鲜水果。"],
+                    ["Can you help me with this?", "你能帮我这个吗？"],
+                    ["I don't feel well.", "我感觉不舒服。"],
+                    ["Please sit down here.", "请坐在这里。"],
+                    ["The battery is low.", "电池快没电了。"],
+                    ["It's too loud.", "声音太大了。"],
+                    ["I have finished my work.", "我完成我的工作了。"],
+                    ["The drawer is stuck.", "抽屉卡住了。"],
+                    ["I need to go outside.", "我需要出去一下。"],
+                    ["The carpet is new.", "地毯是新的。"],
+                    ["I am going to the garden.", "我要去花园。"]
+                ]
+            },
+            2: { 
+                name: "社区交流", 
+                icon: "🏘️", 
+                score: 15,
+                sentences: [
+                    ["Good morning, neighbor.", "早上好，邻居。"],
+                    ["Thank you for your help.", "谢谢你的帮助。"],
+                    ["Excuse me, where is the library?", "对不起，请问图书馆在哪里？"],
+                    ["Have a nice day!", "祝你有个美好的一天！"],
+                    ["What time is it now?", "现在几点了？"],
+                    ["I need to see a doctor.", "我需要看医生。"],
+                    ["The bus stop is around the corner.", "公交车站就在拐角处。"],
+                    ["I am sorry for the mistake.", "我对我的错误感到抱歉。"],
+                    ["May I ask a question?", "我可以问一个问题吗？"],
+                    ["How do you spell that?", "那个怎么拼写？"],
+                    ["Can you speak slowly, please?", "请您说慢一点好吗？"],
+                    ["I live nearby.", "我就住在附近。"],
+                    ["This park is very clean.", "这个公园很干净。"],
+                    ["I am going to the pharmacy.", "我要去药店。"],
+                    ["Goodbye, see you tomorrow.", "再见，明天见。"],
+                    ["Do you have any suggestions?", "你有什么建议吗？"],
+                    ["I don't understand that.", "我不明白那个。"],
+                    ["I need help with this form.", "我需要帮助填写这张表格。"],
+                    ["Where is the nearest bank?", "最近的银行在哪里？"],
+                    ["It was nice talking to you.", "很高兴和你交谈。"],
+                    ["Can I pay with cash?", "我可以用现金支付吗？"],
+                    ["How are you doing today?", "你今天过得怎么样？"],
+                    ["I am feeling much better.", "我感觉好多了。"],
+                    ["The community center is open.", "社区中心开放了。"],
+                    ["Where can I find a map?", "我在哪里可以找到地图？"],
+                    ["I appreciate your patience.", "我感谢您的耐心。"],
+                    ["Please wait for me here.", "请在这里等我。"],
+                    ["What is your phone number?", "你的电话号码是多少？"],
+                    ["I am looking for a quiet place.", "我正在找一个安静的地方。"],
+                    ["I would like a receipt, please.", "请给我一张收据。"],
+                    ["Is this seat taken?", "这个座位有人坐吗？"],
+                    ["Let's meet at the entrance.", "我们在入口处见面吧。"],
+                    ["The store closes at five.", "这家商店五点关门。"],
+                    ["Do you have this in a larger size?", "这个有大一点的尺码吗？"],
+                    ["I will take this one.", "我要这个。"],
+                    ["I need to register here.", "我需要在这里注册。"],
+                    ["Please fill out this paper.", "请填写这张纸。"],
+                    ["What kind of weather is it?", "今天是什么样的天气？"],
+                    ["It's very cold outside.", "外面很冷。"],
+                    ["I am retired now.", "我现在退休了。"],
+                    ["I am enjoying my life.", "我正在享受我的生活。"],
+                    ["The concert was wonderful.", "音乐会很精彩。"],
+                    ["Do you have Wi-Fi here?", "这里有无线网络吗？"],
+                    ["I'm visiting my friend.", "我正在拜访我的朋友。"],
+                    ["I need to mail this letter.", "我需要寄这封信。"],
+                    ["Can you repeat that, please?", "请你重复一遍好吗？"],
+                    ["I agree with you.", "我同意你的看法。"],
+                    ["We should help each other.", "我们应该互相帮助。"],
+                    ["I'm looking for the restroom.", "我正在找洗手间。"],
+                    ["Please be careful.", "请小心。"]
+                ]
+            },
+            3: { 
+                name: "户外活动", 
+                icon: "🌳", 
+                score: 20,
+                sentences: [
+                    ["It is a sunny day.", "今天是个晴天。"],
+                    ["I love walking in the park.", "我喜欢在公园散步。"],
+                    ["Look at the beautiful flowers.", "看那些美丽的花。"],
+                    ["The air is very fresh.", "空气非常新鲜。"],
+                    ["I see a bird flying.", "我看到一只鸟在飞。"],
+                    ["Let's climb the mountain.", "我们去爬山吧。"],
+                    ["I enjoy the beach view.", "我喜欢海滩的景色。"],
+                    ["The market is open today.", "市场今天开门。"],
+                    ["The concert starts soon.", "音乐会很快就要开始了。"],
+                    ["It might rain later.", "等会儿可能会下雨。"],
+                    ["I need sunscreen.", "我需要防晒霜。"],
+                    ["Where is the hiking trail?", "徒步小径在哪里？"],
+                    ["The grass is green.", "草地是绿色的。"],
+                    ["I am taking a photo.", "我正在拍照。"],
+                    ["Do you want an ice cream?", "你想要冰淇淋吗？"],
+                    ["The sky is blue and clear.", "天空是蓝色且晴朗的。"],
+                    ["It's getting dark now.", "现在天快黑了。"],
+                    ["We should go back home.", "我们应该回家了。"],
+                    ["I feel so relaxed here.", "我在这里感到非常放松。"],
+                    ["The leaves are falling.", "树叶正在落下。"],
+                    ["I found a pretty rock.", "我找到一块漂亮的石头。"],
+                    ["Let's have a picnic.", "我们去野餐吧。"],
+                    ["The river is very long.", "这条河很长。"],
+                    ["I bought fresh vegetables.", "我买了新鲜的蔬菜。"],
+                    ["This park has many trees.", "这个公园有很多树。"],
+                    ["I lost my way.", "我迷路了。"],
+                    ["Can you show me the directions?", "你能给我指路吗？"],
+                    ["I am sitting on the bench.", "我坐在长凳上。"],
+                    ["The wind is strong.", "风很大。"],
+                    ["It is a perfect day for exercise.", "今天是锻炼身体的完美日子。"],
+                    ["I need a drink of water.", "我需要喝水。"],
+                    ["The sunset is beautiful.", "日落很美丽。"],
+                    ["Be careful of the steps.", "小心台阶。"],
+                    ["I forgot my hat.", "我忘了带我的帽子。"],
+                    ["The museum is free entry.", "博物馆是免费入场。"],
+                    ["Let's buy a souvenir.", "我们买个纪念品吧。"],
+                    ["I love this kind of weather.", "我喜欢这种天气。"],
+                    ["The street performers are good.", "街头艺人很棒。"],
+                    ["I need to charge my phone.", "我需要给手机充电。"],
+                    ["The fountain is running.", "喷泉在喷水。"],
+                    ["Where can I find a public restroom?", "我在哪里可以找到公共洗手间？"],
+                    ["I'm waiting for my friend.", "我正在等我的朋友。"],
+                    ["The zoo has many animals.", "动物园里有很多动物。"],
+                    ["I like listening to the birds.", "我喜欢听鸟叫。"],
+                    ["Let's take a break.", "我们休息一下吧。"],
+                    ["This path is easy to walk.", "这条路很容易走。"],
+                    ["I feel better after the walk.", "散步后我感觉好多了。"],
+                    ["The stars are shining brightly.", "星星闪耀着光芒。"],
+                    ["I will go fishing tomorrow.", "我明天要去钓鱼。"],
+                    ["I miss the fresh air.", "我想念新鲜的空气。"]
+                ]
+            },
+            4: { 
+                name: "交通出行", 
+                icon: "🚌", 
+                score: 25,
+                sentences: [
+                    ["Where is the train station?", "火车站在哪里？"],
+                    ["I need a bus ticket.", "我需要一张公共汽车票。"],
+                    ["How much is the fare?", "车费是多少？"],
+                    ["Please drive safely.", "请安全驾驶。"],
+                    ["Turn left at the next light.", "在下一个红绿灯处左转。"],
+                    ["Stop here, please.", "请停在这里。"],
+                    ["I am going to the airport.", "我要去机场。"],
+                    ["Which platform is the train on?", "火车在哪个站台？"],
+                    ["I need a taxi immediately.", "我需要一辆出租车。"],
+                    ["Is this seat available?", "这个座位有人坐吗？"],
+                    ["I feel carsick.", "我晕车。"],
+                    ["How long will the ride take?", "这次行程需要多长时间？"],
+                    ["I missed the last bus.", "我错过了最后一班公共汽车。"],
+                    ["Can you take me to this address?", "你能带我去这个地址吗？"],
+                    ["The traffic is very heavy.", "交通非常拥堵。"],
+                    ["The red light means stop.", "红灯表示停止。"],
+                    ["I need to transfer here.", "我需要在这里换乘。"],
+                    ["Where are we going now?", "我们现在要去哪里？"],
+                    ["Please use the seat belt.", "请系好安全带。"],
+                    ["I need a map of the subway.", "我需要一张地铁图。"],
+                    ["The car broke down.", "汽车抛锚了。"],
+                    ["Is there a parking space?", "有停车位吗？"],
+                    ["I need to rent a car.", "我需要租一辆车。"],
+                    ["The journey was long.", "旅途很漫长。"],
+                    ["Please follow the speed limit.", "请遵守限速。"],
+                    ["This lane is for buses only.", "这条车道只供公共汽车使用。"],
+                    ["I prefer walking.", "我更喜欢步行。"],
+                    ["The ticket machine is broken.", "售票机坏了。"],
+                    ["I need to validate my ticket.", "我需要检票。"],
+                    ["The destination is far away.", "目的地很远。"],
+                    ["I need to check the timetable.", "我需要查看时间表。"],
+                    ["Which exit should I take?", "我应该走哪个出口？"],
+                    ["I lost my luggage.", "我丢失了我的行李。"],
+                    ["Is this the right direction?", "这是正确的方向吗？"],
+                    ["I am waiting for a connection.", "我正在等候转机。"],
+                    ["Be careful when crossing the road.", "过马路时要小心。"],
+                    ["The bridge is closed.", "这座桥关闭了。"],
+                    ["I will take the next stop.", "我将在下一站下车。"],
+                    ["How do I get to the city center?", "我如何到达市中心？"],
+                    ["The driver was very friendly.", "司机非常友好。"],
+                    ["I need a round-trip ticket.", "我需要一张往返票。"],
+                    ["I bought my ticket online.", "我在网上买了票。"],
+                    ["Is there a discount for seniors?", "老年人有折扣吗？"],
+                    ["The road is very slippery.", "路面很滑。"],
+                    ["I see the sign now.", "我现在看到标志了。"],
+                    ["I must be on time.", "我必须准时。"],
+                    ["The ship is leaving soon.", "船很快就要离开了。"],
+                    ["I need assistance with my bags.", "我的行李需要帮助。"],
+                    ["Please watch your step.", "请注意脚下。"],
+                    ["I am going straight ahead.", "我直走。"]
+                ]
+            },
+            5: { 
+                name: "紧急求助", 
+                icon: "🚨", 
+                score: 30,
+                sentences: [
+                    ["Help! Call the police!", "救命！叫警察！"],
+                    ["I need an ambulance now.", "我现在需要一辆救护车。"],
+                    ["I am hurt and cannot move.", "我受伤了，不能动。"],
+                    ["There is a fire in the building.", "大楼里着火了。"],
+                    ["I am lost and cannot find my way.", "我迷路了，找不到路。"],
+                    ["I need a doctor immediately.", "我需要立刻看医生。"],
+                    ["What is the emergency number?", "紧急电话号码是多少？"],
+                    ["I have fallen down.", "我摔倒了。"],
+                    ["Can you call my son/daughter?", "你能给我儿子/女儿打电话吗？"],
+                    ["I feel very sick.", "我感觉很不舒服。"],
+                    ["Please stay with me.", "请和我待在一起。"],
+                    ["I need water and shelter.", "我需要水和住所。"],
+                    ["Where is the nearest hospital?", "最近的医院在哪里？"],
+                    ["I have chest pain.", "我胸口痛。"],
+                    ["My head hurts badly.", "我头很疼。"],
+                    ["Someone stole my bag.", "有人偷了我的包。"],
+                    ["Please hurry!", "请快点！"],
+                    ["I cannot breathe well.", "我呼吸不顺畅。"],
+                    ["Is anyone a nurse or doctor?", "有人是护士或医生吗？"],
+                    ["I need help crossing the street.", "我过马路需要帮助。"],
+                    ["My car broke down on the road.", "我的车在路上抛锚了。"],
+                    ["I need to report an accident.", "我需要报告一起事故。"],
+                    ["Is there a safe place to wait?", "有没有一个安全的地方可以等待？"],
+                    ["I need my medication.", "我需要我的药。"],
+                    ["I feel dizzy.", "我感到头晕。"],
+                    ["I need to sit down.", "我需要坐下。"],
+                    ["My vision is blurry.", "我的视力模糊。"],
+                    ["I am having an allergic reaction.", "我正在过敏。"],
+                    ["Please don't leave me alone.", "请不要留下我一个人。"],
+                    ["I need to contact the embassy.", "我需要联系大使馆。"],
+                    ["The door is stuck.", "门卡住了。"],
+                    ["I can't reach my keys.", "我够不到我的钥匙。"],
+                    ["I need directions to a police station.", "我需要去警察局的路线。"],
+                    ["Please secure the area.", "请保护好这个区域。"],
+                    ["I have a severe fever.", "我有严重的低烧。"],
+                    ["I am bleeding badly.", "我流血很严重。"],
+                    ["Did anyone see what happened?", "有人看到发生了什么吗？"],
+                    ["I lost my wallet.", "我丢了钱包。"],
+                    ["I need food and warmth.", "我需要食物和温暖。"],
+                    ["My phone is dead.", "我的手机没电了。"],
+                    ["I need a blanket.", "我需要一条毯子。"],
+                    ["The road is blocked.", "道路被堵住了。"],
+                    ["Is the situation under control?", "情况得到控制了吗？"],
+                    ["I need a ride to the clinic.", "我需要搭车去诊所。"],
+                    ["I am feeling weak.", "我感到虚弱。"],
+                    ["I have a burn injury.", "我烧伤了。"],
+                    ["Please call for technical support.", "请呼叫技术支持。"],
+                    ["My leg is broken.", "我的腿断了。"],
+                    ["Is everything alright?", "一切都好吗？"],
+                    ["I need to check out.", "我需要退房。"]
+                ]
+            }
+        };
+
+        // =================================================================
+        // 游戏状态管理
+        // =================================================================
+        let game = {
+            currentLevel: 1,
+            score: 0,
+            levelScore: 0,
+            sentences: [], // 存储当前 Level 的所有 [English, Chinese] 句子
+            usedIndices: new Set(), // 存储已用句子的索引，用于确保不重复
+            currentSentence: null,
+            recognition: null, // SpeechRecognition 实例
+            isSpeaking: false, // 避免重复点击
+            isGameActive: false,
+        };
+
+        // =================================================================
+        // UI 元素引用
+        // =================================================================
+        const DOMElements = {
+            levelName: document.getElementById('level-name'),
+            levelNum: document.getElementById('current-level-num'),
+            levelIcon: document.getElementById('level-icon'),
+            scoreDisplay: document.getElementById('score-display'),
+            englishText: document.getElementById('english-text'),
+            chineseTranslation: document.getElementById('chinese-translation'),
+            speechStatus: document.getElementById('speech-status'), // 新增
+            speakButton: document.getElementById('speak-button'),
+            skipButton: document.getElementById('skip-button'),
+            modalContainer: document.getElementById('modal-container'),
+            confettiContainer: document.getElementById('confetti-container')
+        };
+
+        /**
+         * 根据总分数计算当前应在的级别
+         * 级别 = floor(总分数 / 每级所需分数) + 1
+         */
+        function deriveCurrentLevel(score) {
+            // 确保分数 >= 0
+            score = Math.max(0, score); 
+            // Math.max(1, ...) 确保级别至少为 1
+            return Math.max(1, Math.floor(score / SCORE_TO_LEVEL_UP) + 1);
+        }
+
+        // =================================================================
+        // 游戏核心逻辑
+        // =================================================================
+
+        /**
+         * 初始化游戏或重启游戏
+         */
+        function initGame(score = 0) {
+            game.score = score; // 允许从非零分数开始（如果将来接入存储）
+            game.currentLevel = deriveCurrentLevel(game.score); // 根据分数计算起始级别
+            game.isGameActive = true;
+            DOMElements.scoreDisplay.textContent = game.score;
+            
+            // 确保起始级别不超过最大级别
+            if (game.currentLevel > MAX_LEVEL) {
+                 handleGameOver();
+                 return;
+            }
+            
+            loadLevel();
+        }
+
+        /**
+         * 加载当前等级的配置和第一个句子
+         */
+        function loadLevel() {
+            if (game.currentLevel > MAX_LEVEL) {
+                handleGameOver();
+                return;
+            }
+
+            const levelData = LEVEL_DATA[game.currentLevel];
+            game.sentences = [...levelData.sentences];
+            game.usedIndices = new Set();
+            
+            game.levelScore = game.score % SCORE_TO_LEVEL_UP; // 确保 levelScore 是当前级别内的进度
+
+            // 更新UI
+            DOMElements.levelName.textContent = levelData.name;
+            DOMElements.levelNum.textContent = game.currentLevel;
+            DOMElements.levelIcon.textContent = levelData.icon;
+            
+            // 确保Speak和Skip按钮可用
+            DOMElements.speakButton.classList.remove('opacity-50', 'pointer-events-none');
+            DOMElements.skipButton.classList.remove('opacity-50', 'pointer-events-none');
+            
+            loadNewSentence();
+        }
+
+        /**
+         * 随机加载一个未使用的句子
+         */
+        function loadNewSentence() {
+            if (game.usedIndices.size === game.sentences.length) {
+                // 当前Level句子全部完成
+                checkLevelUp(true);
+                return;
+            }
+
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * game.sentences.length);
+            } while (game.usedIndices.has(randomIndex));
+
+            game.usedIndices.add(randomIndex);
+            game.currentSentence = game.sentences[randomIndex];
+
+            DOMElements.englishText.textContent = game.currentSentence[0];
+            DOMElements.chineseTranslation.textContent = game.currentSentence[1];
+        }
+
+        /**
+         * 处理积分增加和检查升级
+         * @param {number} points - 获得的积分
+         * @returns {boolean} - 如果发生升级或游戏结束，返回 true
+         */
+        function gainScore(points) {
+            game.score += points;
+            game.levelScore = game.score % SCORE_TO_LEVEL_UP; 
+            DOMElements.scoreDisplay.textContent = game.score;
+            
+            // 返回 checkLevelUp 的结果，以便 handleSpeechRecognition 知道是否要显示反馈
+            return checkLevelUp();
+        }
+
+        /**
+         * 检查是否达到升级条件
+         * @param {boolean} forceLevelUp - 强制升级 (当所有句子完成时)
+         * @returns {boolean} - 如果发生升级或游戏结束，返回 true
+         */
+        function checkLevelUp(forceLevelUp = false) {
+            const requiredLevel = deriveCurrentLevel(game.score); // 根据总分计算应在的级别
+            let didAction = false; // 跟踪是否发生了升级或游戏结束
+
+            // 1. 检查分数是否导致升级/跨级
+            if (requiredLevel > game.currentLevel) {
+                const oldLevel = game.currentLevel;
+                game.currentLevel = requiredLevel;
+                
+                // 确保不超过最大级别
+                if (game.currentLevel > MAX_LEVEL) {
+                    game.currentLevel = MAX_LEVEL; 
+                }
+
+                if (game.currentLevel > oldLevel) {
+                    // ** 关键修复：显示升级模态框并安排后续加载 **
+                    showModal('levelUp', {
+                        level: game.currentLevel,
+                        name: LEVEL_DATA[game.currentLevel].name
+                    });
+                    
+                    // 延迟加载新Level，等待 PopUp 和撒花效果 (10秒)
+                    setTimeout(() => {
+                        loadLevel();
+                    }, 10000); 
+                    didAction = true;
+                }
+            }
+            
+            // 2. 检查是否因完成所有句子而升级
+            if (forceLevelUp && !didAction && game.currentLevel < MAX_LEVEL) {
+                game.currentLevel++;
+                showModal('levelUp', {
+                    level: game.currentLevel,
+                    name: LEVEL_DATA[game.currentLevel].name
+                });
+                
+                setTimeout(() => {
+                    loadLevel();
+                }, 10000);
+                didAction = true;
+            }
+            
+            // 3. 如果达到了最大级别且升级，则处理 Game Over
+            if (game.currentLevel >= MAX_LEVEL && (didAction || forceLevelUp)) {
+                handleGameOver();
+                didAction = true;
+            }
+
+            // 4. 正常情况：不在此处加载新句子，而是交给 feedback modal 的按钮处理，
+            // 避免在 levelUp modal 出现时立即加载下一个句子。
+            
+            return didAction; // 返回是否发生了升级或游戏结束
+        }
+
+
+        /**
+         * 处理游戏结束
+         */
+        function handleGameOver() {
+            game.isGameActive = false;
+            showModal('gameOver', { finalScore: game.score });
+            
+            // 确保Speak和Skip按钮不可用
+            DOMElements.speakButton.classList.add('opacity-50', 'pointer-events-none');
+            DOMElements.skipButton.classList.add('opacity-50', 'pointer-events-none');
+        }
+
+        // =================================================================
+        // 语音功能 (TTS 和 Recognition)
+        // =================================================================
+
+        /**
+         * 收听标准发音 (TTS)
+         */
+        function handleTTS() {
+            if (game.isSpeaking) return;
+            const text = game.currentSentence[0];
+            
+            if ('speechSynthesis' in window) {
+                game.isSpeaking = true;
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US'; // 设置为英文发音
+                utterance.pitch = 1.0;
+                utterance.rate = 0.8; // 稍慢一点，方便老年人听
+                utterance.volume = 1.0;
+
+                utterance.onend = () => { game.isSpeaking = false; };
+                utterance.onerror = (e) => {
+                    game.isSpeaking = false;
+                    console.error('TTS Error:', e);
+                    showModal('info', { title: "发音错误", message: "抱歉，您的设备无法播放标准发音。" });
+                };
+
+                speechSynthesis.speak(utterance);
+            } else {
+                showModal('info', { title: "功能受限", message: "抱歉，您的浏览器不支持语音播放功能。" });
+            }
+        }
+
+        /**
+         * 启动语音识别 (SpeechRecognition)
+         */
+        function handleSpeechRecognition() {
+            const targetText = game.currentSentence[0];
+            const currentScore = LEVEL_DATA[game.currentLevel].score;
+
+            if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+                showModal('info', { title: "功能受限", message: "抱歉，您的浏览器不支持语音输入功能。" });
+                return;
+            }
+
+            if (game.recognition) {
+                game.recognition.stop();
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            game.recognition = new SpeechRecognition();
+            game.recognition.lang = 'en-US'; // 识别英文
+            game.recognition.interimResults = false;
+            game.recognition.maxAlternatives = 1;
+
+            DOMElements.speechStatus.textContent = "🔊 正在听... 请大声读出英文句子";
+            DOMElements.speechStatus.classList.remove('hidden');
+            DOMElements.speakButton.classList.add('bg-yellow-500', 'animate-pulse');
+
+            game.recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript.trim();
+                const cleanTranscript = transcript.toLowerCase().replace(/[.,!?'"]+/g, '');
+                const cleanTarget = targetText.toLowerCase().replace(/[.,!?'"]+/g, '');
+                
+                if (cleanTranscript === cleanTarget) {
+                    // 发音准确
+                    // 关键修复：检查是否升级。如果升级了，该函数会返回 true，阻止后续反馈
+                    const didLevelUpOrEnd = gainScore(currentScore); 
+                    
+                    if (!didLevelUpOrEnd) {
+                        // 如果没有升级，显示成功反馈，并让用户手动点击按钮进入下一题
+                        showModal('feedback', { 
+                            success: true, 
+                            score: currentScore 
+                        });
+                    }
+                    // 如果升级了，checkLevelUp 已经负责显示 LevelUp 模态框和安排 loadLevel
+                    
+                } else {
+                    // 发音不正确
+                    showModal('feedback', { 
+                        success: false, 
+                        recognizedText: transcript 
+                    });
+                }
+            };
+
+            game.recognition.onerror = (event) => {
+                console.error('Recognition Error:', event.error);
+                
+                let errorMessage;
+                if (event.error === 'no-speech') {
+                    errorMessage = "未检测到语音。请大声一点，并确保在听到“正在听”提示后立即开始讲话。";
+                } else if (event.error === 'not-allowed') {
+                    errorMessage = "麦克风权限被拒绝。请检查您的设备或浏览器设置，允许使用麦克风。";
+                } else {
+                    errorMessage = "语音识别失败，请检查麦克风权限，或您的发音不够清晰。错误代码: " + event.error;
+                }
+                
+                showModal('info', { 
+                    title: "识别失败", 
+                    message: errorMessage
+                });
+            };
+
+            game.recognition.onend = () => {
+                // 无论成功、失败还是错误，都清理状态提示并停止按钮动画
+                DOMElements.speakButton.classList.remove('bg-yellow-500', 'animate-pulse');
+                DOMElements.speechStatus.classList.add('hidden');
+                DOMElements.speechStatus.textContent = '';
+            };
+
+            try {
+                game.recognition.start();
+            } catch (e) {
+                console.error("Recognition start failed:", e);
+                showModal('info', { title: "启动失败", message: "请确保您的浏览器允许使用麦克风。" });
+                DOMElements.speakButton.classList.remove('bg-yellow-500', 'animate-pulse');
+                DOMElements.speechStatus.classList.add('hidden'); 
+                DOMElements.speechStatus.textContent = '';
+            }
+        }
+
+        /**
+         * 跳过当前题目 (不给积分)
+         */
+        function skipQuestion() {
+            showModal('info', {
+                title: "题目已跳过",
+                message: "您选择了跳过。请继续学习下一个句子！",
+            });
+            // 模态框关闭后，用户点击按钮会自动加载新句子
+            // closeModal(); 
+            // loadNewSentence(); // 确保跳过是立即进行的
+        }
+
+        // =================================================================
+        // UI 和 模态框/动画
+        // =================================================================
+
+        /**
+         * 显示模态框
+         * @param {string} type - 模态框类型 (feedback, levelUp, gameOver, info)
+         * @param {object} data - 模态框所需数据
+         */
+        function showModal(type, data = {}) {
+            DOMElements.modalContainer.innerHTML = ''; // 清除旧模态框
+            let contentHTML = '';
+            let title = '';
+            let buttonsHTML = '';
+            const isSuccess = data.success === true;
+            let duration = 3000; // 默认持续时间
+
+            if (type === 'feedback') {
+                if (isSuccess) {
+                    title = "🎉 发音完美！";
+                    contentHTML = `<p class="text-4xl-plus font-bold text-green-700 mt-4">奖励 +${data.score} 积分！</p>`;
+                    // 成功反馈：点击后关闭模态框并加载新句子
+                    buttonsHTML = `<button onclick="closeModal(); loadNewSentence()" class="action-button bg-green-600 hover:bg-green-700 text-white p-4 rounded-full text-2xl-plus font-bold w-full">继续学习</button>`;
+                    duration = 0; // 成功也需要用户手动关闭，防止错过积分信息
+                } else {
+                    title = "🤔 发音有点不准确";
+                    contentHTML = `
+                        <p class="text-2xl-plus font-bold text-gray-700 mt-4 mb-4">请再仔细听听原文并重试。</p>
+                        ${data.recognizedText ? `<p class="text-xl-plus text-red-500">（您说的是: ${data.recognizedText}）</p>` : ''}
+                    `;
+                    // 失败反馈：点击后关闭模态框 (不加载新句子，让用户重试当前题)
+                    buttonsHTML = `
+                        <button onclick="closeModal()" class="action-button bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full text-2xl-plus font-bold w-full mb-3">再试一次</button>
+                        <button onclick="closeModal(); loadNewSentence()" class="action-button bg-gray-500 hover:bg-gray-600 text-white p-4 rounded-full text-2xl-plus font-bold w-full">跳过 (不给积分)</button>
+                    `;
+                    duration = 0; // 失败模态框需要手动关闭
+                }
+            } else if (type === 'levelUp') {
+                title = "🚀 恭喜升级！";
+                // **关键修复：确保表情符号和撒花效果启动**
+                contentHTML = `
+                    <span class="text-emoji-giant">👍</span>
+                    <p class="text-3xl-plus font-bold text-purple-700 mt-4">您已达到第 ${data.level} 级: ${data.name}！</p>
+                    <p class="text-2xl-plus text-gray-700">难度已提升！向环球达人迈进！</p>
+                `;
+                buttonsHTML = `<!-- 自动关闭，无按钮 -->`;
+                duration = 10000; // 10秒持续
+                createConfetti(duration); // 启动撒花
+            } else if (type === 'gameOver') {
+                title = "🌟 环球达人！游戏胜利！";
+                contentHTML = `
+                    <span class="text-emoji-giant">🏆</span>
+                    <p class="text-3xl-plus font-bold text-green-700 mt-4">恭喜您，完成了所有等级！</p>
+                    <p class="text-2xl-plus text-gray-700">最终总积分：${data.finalScore}</p>
+                `;
+                buttonsHTML = `<button onclick="closeModal(); initGame(0);" class="action-button bg-green-600 hover:bg-green-700 text-white p-4 rounded-full text-2xl-plus font-bold w-full">从头再玩</button>`;
+                duration = 10000; // 10秒持续
+                createConfetti(duration);
+            } else if (type === 'info') {
+                title = data.title || "提示";
+                contentHTML = `<p class="text-2xl-plus font-bold text-gray-700 mt-4">${data.message}</p>`;
+                // 普通信息框：点击后关闭
+                buttonsHTML = `<button onclick="closeModal()" class="action-button bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full text-2xl-plus font-bold w-full">好的</button>`;
+                duration = 0;
+            }
+
+            const modalHTML = `
+                <div class="modal-overlay fixed inset-0 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center animate-in zoom-in duration-500">
+                        <h2 class="text-4xl-plus font-extrabold mb-4 text-blue-800">${title}</h2>
+                        ${contentHTML}
+                        <div class="mt-8">${buttonsHTML}</div>
+                    </div>
+                </div>
+            `;
+            DOMElements.modalContainer.innerHTML = modalHTML;
+            
+            // 如果设置了自动关闭时间 (仅用于 levelUp 和 gameOver)
+            if (duration > 0 && type !== 'feedback') {
+                setTimeout(closeModal, duration);
+            }
+        }
+
+        /**
+         * 关闭模态框
+         */
+        function closeModal() {
+            DOMElements.modalContainer.innerHTML = '';
+            DOMElements.confettiContainer.innerHTML = '';
+            
+            // 确保在模态框关闭后，继续语音识别的监听会被清理
+            if (game.recognition) {
+                game.recognition.stop();
+            }
+        }
+
+        /**
+         * 启动撒花效果
+         * @param {number} duration - 持续时间 (毫秒)
+         */
+        function createConfetti(duration) {
+            const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#00bcd4', '#009688', '#4caf50', '#ffeb3b', '#ff9800', '#ff5722'];
+            const container = DOMElements.confettiContainer;
+            container.innerHTML = '';
+
+            for (let i = 0; i < 100; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.left = `${Math.random() * 100}vw`;
+                piece.style.setProperty('--x', `${(Math.random() - 0.5) * 200}px`);
+                piece.style.animationDelay = `${Math.random() * 10}s`;
+                piece.style.animationDuration = `${5 + Math.random() * 5}s`;
+                piece.style.width = `${5 + Math.random() * 10}px`;
+                piece.style.height = `${10 + Math.random() * 15}px`;
+                container.appendChild(piece);
+            }
+
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, duration);
+        }
+
+        // =================================================================
+        // 启动
+        // =================================================================
+        
+        // 页面加载完成后启动游戏
+        window.onload = function() {
+            initGame();
+        };
+
+    </script>
+</body>
+</html>
