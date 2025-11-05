@@ -4,56 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>乐学英语 - 专为长者设计</title>
-    <!-- 引入 Tailwind CSS CDN，用于快速构建响应式和美观的界面 -->
+    <!-- Load Tailwind CSS CDN for responsive and aesthetic UI -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 自定义CSS：调整字体大小以适应手机单页视图，但仍需保持高可读性 */
+        /* Custom CSS: Adjust font sizes for mobile single-page view while maintaining high readability */
         body {
             font-family: 'Inter', 'Microsoft YaHei', 'SimHei', sans-serif;
-            background-color: #e0f7fa; /* 非常浅的浅蓝色底 */
+            background-color: #e0f7fa; /* Very light cyan background */
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            /* 移除 min-height: 100vh 以防止在内容压缩后仍然强制页面高度 */
-            padding: 0.5rem; /* 减少整体页边距 */
+            padding: 0.5rem; /* Reduced overall page padding */
             padding-top: 1rem;
         }
 
-        /* 调整字体大小，使用更小的尺寸以适应手机屏幕，但保持比默认文本大 */
+        /* Adjusted font sizes for mobile screen, still larger than default text */
         .text-xl-plus { font-size: 1.25rem; line-height: 1.75rem; } /* text-xl */
         .text-2xl-plus { font-size: 1.5rem; line-height: 2rem; } /* text-2xl */
         .text-3xl-plus { font-size: 1.875rem; line-height: 2.25rem; } /* text-3xl */
         .text-4xl-plus { font-size: 2.5rem; line-height: 3rem; } /* text-4xl */
         
-        /* 调整巨大的表情符号大小，确保在模态框中不会溢出 */
+        /* Adjusted size for giant emojis in modal */
         .text-emoji-giant { 
-            font-size: 5rem; /* 约 80px */
+            font-size: 5rem; /* ~80px */
             line-height: 1;
             text-shadow: 0 0 10px rgba(255, 255, 0, 0.8); 
         }
 
-        /* 隐藏滚动条但允许内容滚动 (在手机上通常不需要) */
+        /* Hide scrollbars but allow scrolling */
         body::-webkit-scrollbar { display: none; }
         body { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 自定义按钮样式，增加视觉吸引力 */
+        /* Custom button style for interaction feedback */
         .action-button {
             transition: transform 0.1s;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* 略微减小阴影 */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); 
         }
         .action-button:active {
             transform: scale(0.95);
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
         }
         
-        /* 模态框背景 */
+        /* Modal background overlay */
         .modal-overlay {
             background-color: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(2px);
             z-index: 50;
         }
 
-        /* 级别升级撒花效果 (Confetti) */
+        /* Confetti effect for level up */
         .confetti {
             position: fixed;
             top: 0;
@@ -66,9 +65,9 @@
         }
         .confetti-piece {
             position: absolute;
-            width: 8px; /* 减小撒花片大小 */
+            width: 8px; /* Reduced size */
             height: 16px; 
-            background-color: #ffc107; /* Yellow */
+            background-color: #ffc107; 
             opacity: 0;
             transform-origin: 50% 50%;
             animation: fall 10s linear infinite;
@@ -83,10 +82,10 @@
 <body class="bg-blue-50">
     <div id="app" class="w-full max-w-lg flex flex-col items-center">
 
-        <!-- 顶部信息栏: Level 和 Score (减少 p-2 mt-2 mb-2) -->
+        <!-- Top Info Bar: Level and Score -->
         <div class="flex justify-between w-full p-2 mb-3 rounded-xl bg-white shadow-lg">
             
-            <!-- Level Display (减少 p-2) -->
+            <!-- Level Display -->
             <div class="flex items-center space-x-2 bg-blue-100 p-2 rounded-xl shadow-inner">
                 <span id="level-icon" class="text-2xl-plus">🏠</span>
                 <div class="flex flex-col">
@@ -95,28 +94,28 @@
                 </div>
             </div>
 
-            <!-- Score/Fuel Display (减少 p-2) -->
+            <!-- Score/Fuel Display -->
             <div class="flex items-center space-x-2 bg-red-100 p-2 rounded-xl shadow-inner">
                 <span class="text-2xl-plus">🔥</span>
                 <div class="flex flex-col items-end">
-                    <span class="text-xl-plus font-bold text-gray-700">积分</span>
+                    <span class="text-xl-plus font-bold text-gray-700">燃料/积分</span>
                     <span id="score-display" class="text-2xl-plus font-extrabold text-red-700">0</span>
                 </div>
             </div>
         </div>
 
-        <!-- 主要学习卡片 (白色的长方形框) (减少 p-4 mb-4) -->
+        <!-- Main Learning Card -->
         <div class="w-full bg-white p-4 rounded-3xl shadow-2xl flex flex-col items-center space-y-4 mb-4">
             <p class="text-xl-plus font-semibold text-gray-800 self-start">大声读出正确的英文：</p>
 
-            <!-- 英文和收听按钮的蓝色框 (减少 p-4) -->
+            <!-- English Sentence and Listen Button Container -->
             <div class="w-full bg-blue-600 p-4 rounded-2xl shadow-inner flex flex-col items-center space-y-3 text-center">
                 <span id="english-text" class="text-4xl-plus font-black text-white leading-snug">Hello</span>
                 
-                <!-- 新增状态提示栏，不会覆盖英文句子 -->
+                <!-- Status Bar -->
                 <p id="speech-status" class="text-xl-plus font-bold text-yellow-300 hidden">点我说话</p>
 
-                <!-- 收听标准发音按钮 (减少 padding 和字体) -->
+                <!-- Listen Standard Pronunciation Button -->
                 <button onclick="handleTTS()" class="action-button flex items-center justify-center space-x-2 bg-blue-800 text-white py-2 px-4 rounded-full w-full max-w-xs transition duration-150 ease-in-out">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 3v14a1 1 0 01-1.707.707L6.683 15H4a1 1 0 01-1-1V6a1 1 0 011-1h2.683l2.21-2.21A1 1 0 019.383 3.076zM12 7a1 1 0 000 6.945A7.001 7.001 0 0015.42 10 7.001 7.001 0 0012 7z" clip-rule="evenodd" />
@@ -125,11 +124,11 @@
                 </button>
             </div>
 
-            <!-- 中文翻译 -->
+            <!-- Chinese Translation -->
             <p id="chinese-translation" class="text-3xl-plus font-bold text-gray-600 pt-1">你好</p>
         </div>
         
-        <!-- 点我说话按钮 (圆形红底) (缩小尺寸: w-32 h-32; 减少 mb-4) -->
+        <!-- Speak Button (Red circle) -->
         <button id="speak-button" onclick="handleSpeechRecognition()" class="action-button flex flex-col items-center justify-center bg-red-600 text-white w-32 h-32 rounded-full transition duration-300 ease-in-out hover:bg-red-700 active:bg-red-800 shadow-2xl mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4z" clip-rule="evenodd" />
@@ -138,7 +137,7 @@
             <span class="text-xl-plus font-bold mt-1">点我说话</span>
         </button>
 
-        <!-- 跳过这一题按钮 (灰色) (减少 padding 和字体) -->
+        <!-- Skip Button (Grey) -->
         <button id="skip-button" onclick="skipQuestion()" class="action-button flex items-center space-x-1 text-gray-500 py-1 px-3 rounded-full transition duration-150 ease-in-out hover:bg-gray-200">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -146,20 +145,20 @@
             <span class="text-xl-plus font-semibold">跳过这一题 (不给积分)</span>
         </button>
 
-        <!-- 模态框容器 -->
+        <!-- Modal Container -->
         <div id="modal-container"></div>
         
-        <!-- 撒花容器 -->
+        <!-- Confetti Container -->
         <div id="confetti-container" class="confetti"></div>
     </div>
 
     <script>
         // =================================================================
-        // 游戏配置和数据 (硬编码 - 满足50个句子/单词的要求)
+        // Game Configuration and Data
         // =================================================================
         
-        const SCORE_TO_LEVEL_UP = 20; // 升级所需积分
-        const MAX_LEVEL = 5; // 游戏最大等级
+        const SCORE_TO_LEVEL_UP = 20; // Score required for level up
+        const MAX_LEVEL = 5; // Maximum game level
 
         const LEVEL_DATA = {
             1: { 
@@ -450,22 +449,22 @@
         };
 
         // =================================================================
-        // 游戏状态管理
+        // Game State Management
         // =================================================================
         let game = {
             currentLevel: 1,
             score: 0,
             levelScore: 0,
-            sentences: [], // 存储当前 Level 的所有 [English, Chinese] 句子
-            usedIndices: new Set(), // 存储已用句子的索引，用于确保不重复
+            sentences: [], // Stores all [English, Chinese] sentences for the current Level
+            usedIndices: new Set(), // Stores indices of used sentences to avoid repetition
             currentSentence: null,
-            recognition: null, // SpeechRecognition 实例
-            isSpeaking: false, // 避免重复点击
+            recognition: null, // SpeechRecognition instance
+            isSpeaking: false, // Prevents multiple TTS clicks
             isGameActive: false,
         };
 
         // =================================================================
-        // UI 元素引用
+        // UI Element References
         // =================================================================
         const DOMElements = {
             levelName: document.getElementById('level-name'),
@@ -474,7 +473,7 @@
             scoreDisplay: document.getElementById('score-display'),
             englishText: document.getElementById('english-text'),
             chineseTranslation: document.getElementById('chinese-translation'),
-            speechStatus: document.getElementById('speech-status'), // 新增
+            speechStatus: document.getElementById('speech-status'),
             speakButton: document.getElementById('speak-button'),
             skipButton: document.getElementById('skip-button'),
             modalContainer: document.getElementById('modal-container'),
@@ -482,30 +481,29 @@
         };
 
         /**
-         * 根据总分数计算当前应在的级别
-         * 级别 = floor(总分数 / 每级所需分数) + 1
+         * Calculates the current required level based on the total score.
          */
         function deriveCurrentLevel(score) {
-            // 确保分数 >= 0
+            // Ensure score is non-negative
             score = Math.max(0, score); 
-            // Math.max(1, ...) 确保级别至少为 1
+            // Level is floor(score / SCORE_TO_LEVEL_UP) + 1, minimum 1
             return Math.max(1, Math.floor(score / SCORE_TO_LEVEL_UP) + 1);
         }
 
         // =================================================================
-        // 游戏核心逻辑
+        // Game Core Logic
         // =================================================================
 
         /**
-         * 初始化游戏或重启游戏
+         * Initializes or restarts the game.
          */
         function initGame(score = 0) {
-            game.score = score; // 允许从非零分数开始（如果将来接入存储）
-            game.currentLevel = deriveCurrentLevel(game.score); // 根据分数计算起始级别
+            game.score = score; // Start with specified score (e.g., 0 for new game)
+            game.currentLevel = deriveCurrentLevel(game.score); // Calculate starting level
             game.isGameActive = true;
             DOMElements.scoreDisplay.textContent = game.score;
             
-            // 确保起始级别不超过最大级别
+            // Handle case where score implies a level beyond MAX_LEVEL at start
             if (game.currentLevel > MAX_LEVEL) {
                  handleGameOver();
                  return;
@@ -515,7 +513,7 @@
         }
 
         /**
-         * 加载当前等级的配置和第一个句子
+         * Loads the configuration and the first sentence for the current level.
          */
         function loadLevel() {
             if (game.currentLevel > MAX_LEVEL) {
@@ -527,14 +525,14 @@
             game.sentences = [...levelData.sentences];
             game.usedIndices = new Set();
             
-            game.levelScore = game.score % SCORE_TO_LEVEL_UP; // 确保 levelScore 是当前级别内的进度
+            game.levelScore = game.score % SCORE_TO_LEVEL_UP; // Progress within the current level
 
-            // 更新UI
+            // Update UI
             DOMElements.levelName.textContent = levelData.name;
             DOMElements.levelNum.textContent = game.currentLevel;
             DOMElements.levelIcon.textContent = levelData.icon;
             
-            // 确保Speak和Skip按钮可用
+            // Ensure Speak and Skip buttons are enabled
             DOMElements.speakButton.classList.remove('opacity-50', 'pointer-events-none');
             DOMElements.skipButton.classList.remove('opacity-50', 'pointer-events-none');
             
@@ -542,11 +540,11 @@
         }
 
         /**
-         * 随机加载一个未使用的句子
+         * Loads a random, unused sentence.
          */
         function loadNewSentence() {
             if (game.usedIndices.size === game.sentences.length) {
-                // 当前Level句子全部完成
+                // All sentences in the current Level are done
                 checkLevelUp(true);
                 return;
             }
@@ -564,46 +562,41 @@
         }
 
         /**
-         * 处理积分增加和检查升级
-         * @param {number} points - 获得的积分
-         * @returns {boolean} - 如果发生升级或游戏结束，返回 true
+         * Increases score and checks for level up.
+         * @param {number} points - Points earned.
+         * @returns {boolean} - True if level up or game over occurred.
          */
         function gainScore(points) {
             game.score += points;
             game.levelScore = game.score % SCORE_TO_LEVEL_UP; 
             DOMElements.scoreDisplay.textContent = game.score;
             
-            // 返回 checkLevelUp 的结果，以便 handleSpeechRecognition 知道是否要显示反馈
+            // Check for level up after scoring
             return checkLevelUp();
         }
 
         /**
-         * 检查是否达到升级条件
-         * @param {boolean} forceLevelUp - 强制升级 (当所有句子完成时)
-         * @returns {boolean} - 如果发生升级或游戏结束，返回 true
+         * Checks if the level up condition has been met.
+         * @param {boolean} forceLevelUp - Force level up (when all sentences are completed).
+         * @returns {boolean} - True if level up or game over occurred.
          */
         function checkLevelUp(forceLevelUp = false) {
-            const requiredLevel = deriveCurrentLevel(game.score); // 根据总分计算应在的级别
-            let didAction = false; // 跟踪是否发生了升级或游戏结束
+            const requiredLevel = deriveCurrentLevel(game.score); 
+            let didAction = false; // Track if levelUp or gameOver happened
 
-            // 1. 检查分数是否导致升级/跨级
-            if (requiredLevel > game.currentLevel) {
+            // 1. Check if score triggers level up
+            if (requiredLevel > game.currentLevel || forceLevelUp && game.currentLevel < MAX_LEVEL) {
                 const oldLevel = game.currentLevel;
-                game.currentLevel = requiredLevel;
+                game.currentLevel = Math.min(MAX_LEVEL, requiredLevel > game.currentLevel ? requiredLevel : game.currentLevel + 1);
                 
-                // 确保不超过最大级别
-                if (game.currentLevel > MAX_LEVEL) {
-                    game.currentLevel = MAX_LEVEL; 
-                }
-
                 if (game.currentLevel > oldLevel) {
-                    // ** 关键修复：显示升级模态框并安排后续加载 **
+                    // Show Level Up modal and schedule next level loading
                     showModal('levelUp', {
                         level: game.currentLevel,
                         name: LEVEL_DATA[game.currentLevel].name
                     });
                     
-                    // 延迟加载新Level，等待 PopUp 和撒花效果 (10秒)
+                    // Delay loading of new Level for Confetti/PopUp duration (10 seconds)
                     setTimeout(() => {
                         loadLevel();
                     }, 10000); 
@@ -611,51 +604,34 @@
                 }
             }
             
-            // 2. 检查是否因完成所有句子而升级
-            if (forceLevelUp && !didAction && game.currentLevel < MAX_LEVEL) {
-                game.currentLevel++;
-                showModal('levelUp', {
-                    level: game.currentLevel,
-                    name: LEVEL_DATA[game.currentLevel].name
-                });
-                
-                setTimeout(() => {
-                    loadLevel();
-                }, 10000);
-                didAction = true;
-            }
-            
-            // 3. 如果达到了最大级别且升级，则处理 Game Over
+            // 2. Check if maximum level is reached
             if (game.currentLevel >= MAX_LEVEL && (didAction || forceLevelUp)) {
                 handleGameOver();
                 didAction = true;
             }
-
-            // 4. 正常情况：不在此处加载新句子，而是交给 feedback modal 的按钮处理，
-            // 避免在 levelUp modal 出现时立即加载下一个句子。
             
-            return didAction; // 返回是否发生了升级或游戏结束
+            return didAction; // Return whether a major state change occurred
         }
 
 
         /**
-         * 处理游戏结束
+         * Handles the Game Over state.
          */
         function handleGameOver() {
             game.isGameActive = false;
             showModal('gameOver', { finalScore: game.score });
             
-            // 确保Speak和Skip按钮不可用
+            // Disable Speak and Skip buttons
             DOMElements.speakButton.classList.add('opacity-50', 'pointer-events-none');
             DOMElements.skipButton.classList.add('opacity-50', 'pointer-events-none');
         }
 
         // =================================================================
-        // 语音功能 (TTS 和 Recognition)
+        // Speech Functionality (TTS and Recognition)
         // =================================================================
 
         /**
-         * 收听标准发音 (TTS)
+         * Handles standard pronunciation playback (TTS).
          */
         function handleTTS() {
             if (game.isSpeaking) return;
@@ -664,9 +640,9 @@
             if ('speechSynthesis' in window) {
                 game.isSpeaking = true;
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US'; // 设置为英文发音
+                utterance.lang = 'en-US'; // Set to English
                 utterance.pitch = 1.0;
-                utterance.rate = 0.8; // 稍慢一点，方便老年人听
+                utterance.rate = 0.8; // Slightly slower for elderly users
                 utterance.volume = 1.0;
 
                 utterance.onend = () => { game.isSpeaking = false; };
@@ -683,7 +659,7 @@
         }
 
         /**
-         * 启动语音识别 (SpeechRecognition)
+         * Initiates speech recognition.
          */
         function handleSpeechRecognition() {
             const targetText = game.currentSentence[0];
@@ -700,7 +676,7 @@
 
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             game.recognition = new SpeechRecognition();
-            game.recognition.lang = 'en-US'; // 识别英文
+            game.recognition.lang = 'en-US'; // Recognize English
             game.recognition.interimResults = false;
             game.recognition.maxAlternatives = 1;
 
@@ -714,21 +690,20 @@
                 const cleanTarget = targetText.toLowerCase().replace(/[.,!?'"]+/g, '');
                 
                 if (cleanTranscript === cleanTarget) {
-                    // 发音准确
-                    // 关键修复：检查是否升级。如果升级了，该函数会返回 true，阻止后续反馈
+                    // Correct pronunciation
                     const didLevelUpOrEnd = gainScore(currentScore); 
                     
                     if (!didLevelUpOrEnd) {
-                        // 如果没有升级，显示成功反馈，并让用户手动点击按钮进入下一题
+                        // Show success feedback if no level up occurred
                         showModal('feedback', { 
                             success: true, 
                             score: currentScore 
                         });
                     }
-                    // 如果升级了，checkLevelUp 已经负责显示 LevelUp 模态框和安排 loadLevel
+                    // If level up occurred, checkLevelUp already handles the LevelUp modal and loadLevel scheduling
                     
                 } else {
-                    // 发音不正确
+                    // Incorrect pronunciation
                     showModal('feedback', { 
                         success: false, 
                         recognizedText: transcript 
@@ -755,7 +730,7 @@
             };
 
             game.recognition.onend = () => {
-                // 无论成功、失败还是错误，都清理状态提示并停止按钮动画
+                // Clean up status and button animation
                 DOMElements.speakButton.classList.remove('bg-yellow-500', 'animate-pulse');
                 DOMElements.speechStatus.classList.add('hidden');
                 DOMElements.speechStatus.textContent = '';
@@ -773,66 +748,66 @@
         }
 
         /**
-         * 跳过当前题目 (不给积分)
+         * Skips the current question (no score awarded).
+         * FIX: Ensures the next sentence loads after the user closes the modal.
          */
         function skipQuestion() {
             showModal('info', {
                 title: "题目已跳过",
-                message: "您选择了跳过。请继续学习下一个句子！",
+                // Updated message to prompt for next action
+                message: "您选择了跳过。点击“下一个”继续学习！",
+                actionLabel: "下一个", // Custom label for the button
+                nextAction: "loadNewSentence" // Custom action to execute on button click
             });
-            // 模态框关闭后，用户点击按钮会自动加载新句子
-            // closeModal(); 
-            // loadNewSentence(); // 确保跳过是立即进行的
         }
 
         // =================================================================
-        // UI 和 模态框/动画
+        // UI and Modals/Animations
         // =================================================================
 
         /**
-         * 显示模态框
-         * @param {string} type - 模态框类型 (feedback, levelUp, gameOver, info)
-         * @param {object} data - 模态框所需数据
+         * Displays a modal window.
+         * @param {string} type - Modal type (feedback, levelUp, gameOver, info).
+         * @param {object} data - Data required for the modal content.
          */
         function showModal(type, data = {}) {
-            DOMElements.modalContainer.innerHTML = ''; // 清除旧模态框
+            DOMElements.modalContainer.innerHTML = ''; // Clear old modal
             let contentHTML = '';
             let title = '';
             let buttonsHTML = '';
             const isSuccess = data.success === true;
-            let duration = 3000; // 默认持续时间
+            let duration = 3000; // Default duration
 
             if (type === 'feedback') {
                 if (isSuccess) {
                     title = "🎉 发音完美！";
                     contentHTML = `<p class="text-3xl-plus font-bold text-green-700 mt-4">奖励 +${data.score} 积分！</p>`;
-                    // 成功反馈：点击后关闭模态框并加载新句子
+                    // Success feedback: button closes modal and loads new sentence
                     buttonsHTML = `<button onclick="closeModal(); loadNewSentence()" class="action-button bg-green-600 hover:bg-green-700 text-white p-3 rounded-full text-2xl-plus font-bold w-full">继续学习</button>`;
-                    duration = 0; // 成功也需要用户手动关闭，防止错过积分信息
+                    duration = 0; 
                 } else {
                     title = "🤔 发音有点不准确";
                     contentHTML = `
                         <p class="text-2xl-plus font-bold text-gray-700 mt-4 mb-3">请再仔细听听原文并重试。</p>
                         ${data.recognizedText ? `<p class="text-xl-plus text-red-500">（您说的是: ${data.recognizedText}）</p>` : ''}
                     `;
-                    // 失败反馈：点击后关闭模态框 (不加载新句子，让用户重试当前题)
+                    // Failure feedback: button closes modal (user retries current sentence)
                     buttonsHTML = `
                         <button onclick="closeModal()" class="action-button bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full text-2xl-plus font-bold w-full mb-3">再试一次</button>
                         <button onclick="closeModal(); loadNewSentence()" class="action-button bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-full text-2xl-plus font-bold w-full">跳过 (不给积分)</button>
                     `;
-                    duration = 0; // 失败模态框需要手动关闭
+                    duration = 0; 
                 }
             } else if (type === 'levelUp') {
                 title = "🚀 恭喜升级！";
-                // **关键修复：确保表情符号和撒花效果启动**
                 contentHTML = `
                     <span class="text-emoji-giant">👍</span>
                     <p class="text-3xl-plus font-bold text-purple-700 mt-4">您已达到第 ${data.level} 级: ${data.name}！</p>
                     <p class="text-2xl-plus text-gray-700">难度已提升！向环球达人迈进！</p>
                 `;
-                buttonsHTML = `<!-- 自动关闭，无按钮 -->`;
-                duration = 10000; // 10秒持续
-                createConfetti(duration); // 启动撒花
+                buttonsHTML = `<!-- Auto close, no button -->`;
+                duration = 10000; // 10 seconds duration
+                createConfetti(duration); // Start confetti
             } else if (type === 'gameOver') {
                 title = "🌟 环球达人！游戏胜利！";
                 contentHTML = `
@@ -841,13 +816,20 @@
                     <p class="text-2xl-plus text-gray-700">最终总积分：${data.finalScore}</p>
                 `;
                 buttonsHTML = `<button onclick="closeModal(); initGame(0);" class="action-button bg-green-600 hover:bg-green-700 text-white p-3 rounded-full text-2xl-plus font-bold w-full">从头再玩</button>`;
-                duration = 10000; // 10秒持续
+                duration = 10000; // 10 seconds duration
                 createConfetti(duration);
             } else if (type === 'info') {
                 title = data.title || "提示";
                 contentHTML = `<p class="text-2xl-plus font-bold text-gray-700 mt-4">${data.message}</p>`;
-                // 普通信息框：点击后关闭
-                buttonsHTML = `<button onclick="closeModal()" class="action-button bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full text-2xl-plus font-bold w-full">好的</button>`;
+                
+                // If a specific action (like skipping) is requested
+                if (data.nextAction === 'loadNewSentence') {
+                    // Button executes closeModal() and loadNewSentence()
+                    buttonsHTML = `<button onclick="closeModal(); loadNewSentence()" class="action-button bg-green-600 hover:bg-green-700 text-white p-3 rounded-full text-2xl-plus font-bold w-full">${data.actionLabel || '好的'}</button>`;
+                } else {
+                    // Default info box behavior: just close
+                    buttonsHTML = `<button onclick="closeModal()" class="action-button bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full text-2xl-plus font-bold w-full">好的</button>`;
+                }
                 duration = 0;
             }
 
@@ -862,28 +844,28 @@
             `;
             DOMElements.modalContainer.innerHTML = modalHTML;
             
-            // 如果设置了自动关闭时间 (仅用于 levelUp 和 gameOver)
+            // If automatic closing time is set (only for levelUp and gameOver)
             if (duration > 0 && type !== 'feedback') {
                 setTimeout(closeModal, duration);
             }
         }
 
         /**
-         * 关闭模态框
+         * Closes the modal window.
          */
         function closeModal() {
             DOMElements.modalContainer.innerHTML = '';
             DOMElements.confettiContainer.innerHTML = '';
             
-            // 确保在模态框关闭后，继续语音识别的监听会被清理
+            // Ensure speech recognition listener is cleaned up
             if (game.recognition) {
                 game.recognition.stop();
             }
         }
 
         /**
-         * 启动撒花效果
-         * @param {number} duration - 持续时间 (毫秒)
+         * Starts the confetti animation.
+         * @param {number} duration - Duration in milliseconds.
          */
         function createConfetti(duration) {
             const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#00bcd4', '#009688', '#4caf50', '#ffeb3b', '#ff9800', '#ff5722'];
@@ -909,10 +891,10 @@
         }
 
         // =================================================================
-        // 启动
+        // Initialization
         // =================================================================
         
-        // 页面加载完成后启动游戏
+        // Start the game after the page loads
         window.onload = function() {
             initGame();
         };
