@@ -6,6 +6,16 @@
     <title>乐学英语 - 专为长者设计</title>
     <!-- Load Tailwind CSS CDN for responsive and aesthetic UI -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FIX: PWA Meta Tags - Replace failed Service Worker registration with these tags -->
+    <!-- These tags enable 'Add to Home Screen' functionality and full-screen display on mobile -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="乐学英语">
+    <meta name="theme-color" content="#03a9f4">
+    <link rel="apple-touch-icon" href="https://placehold.co/180x180/03a9f4/ffffff?text=EL">
+
     <style>
         /* Custom CSS: Adjust font sizes for mobile single-page view while maintaining high readability */
         body {
@@ -98,7 +108,7 @@
             <div class="flex items-center space-x-2 bg-red-100 p-2 rounded-xl shadow-inner">
                 <span class="text-2xl-plus">🔥</span>
                 <div class="flex flex-col items-end">
-                    <span class="text-xl-plus font-bold text-gray-700">积分</span>
+                    <span class="text-xl-plus font-bold text-gray-700">燃料/积分</span>
                     <span id="score-display" class="text-2xl-plus font-extrabold text-red-700">0</span>
                 </div>
             </div>
@@ -115,12 +125,12 @@
                 <!-- Status Bar -->
                 <p id="speech-status" class="text-xl-plus font-bold text-yellow-300 hidden">点我说话</p>
 
-                <!-- Listen Standard Pronunciation Button -->
+                <!-- Listen Standard Pronunciation Button (Font size is text-2xl-plus) -->
                 <button onclick="handleTTS()" class="action-button flex items-center justify-center space-x-2 bg-blue-800 text-white py-2 px-4 rounded-full w-full max-w-xs transition duration-150 ease-in-out">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 3v14a1 1 0 01-1.707.707L6.683 15H4a1 1 0 01-1-1V6a1 1 0 011-1h2.683l2.21-2.21A1 1 0 019.383 3.076zM12 7a1 1 0 000 6.945A7.001 7.001 0 0015.42 10 7.001 7.001 0 0012 7z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-xl-plus font-bold">收听标准发音</span>
+                    <span class="text-2xl-plus font-bold">收听标准发音</span>
                 </button>
             </div>
 
@@ -154,182 +164,125 @@
 
     <script>
         // =================================================================
+        // PWA SETUP (实现可安装和类App功能)
+        // -----------------------------------------------------------------
+        // 关键修复: 移除 Service Worker 动态注册，因为当前环境协议不支持 (Blob/Data URL)
+        // 仅保留了基础 PWA 元标签，以实现“添加到主屏幕”时的全屏和App外观。
+        // =================================================================
+
+        /**
+         * 注册 PWA 的逻辑。
+         * 由于环境限制，不再尝试注册 Service Worker，仅依赖 `<meta>` 标签。
+         */
+        function registerPWA() {
+            // 在 HTML 头部直接添加了 <meta> 标签，此处仅作提示
+            console.warn('PWA: Service Worker 注册逻辑已移除，因为它在当前沙盒环境中因协议限制而失败。');
+            console.log('PWA: 已通过 HTML <meta> 标签实现“添加到主屏幕”的基本 App 外观。');
+        }
+
+        // 立即运行 PWA 注册逻辑
+        registerPWA();
+
+
+        // =================================================================
         // Game Configuration and Data
         // =================================================================
         
-        const SCORE_TO_LEVEL_UP = 20; // Score required for level up
-        const MAX_LEVEL = 5; // Maximum game level
+        const SCORE_TO_LEVEL_UP = 40; // Score required for level up
+        const MAX_LEVEL = 6; // Maximum game level 
 
         const LEVEL_DATA = {
             1: { 
                 name: "家居基础", 
                 icon: "🏠", 
                 score: 10,
+                // Level 1: Home Basics (50 words)
                 sentences: [
-                    ["This is my home.", "这是我的家。"],
-                    ["I am cleaning the kitchen.", "我正在打扫厨房。"],
-                    ["The light is on.", "灯亮着。"],
-                    ["Please close the window.", "请关上窗户。"],
-                    ["Where is the remote?", "遥控器在哪里？"],
-                    ["I need to buy a new sofa.", "我需要买一个新沙发。"],
-                    ["Please wash your hands.", "请洗手。"],
-                    ["Turn off the light when you leave.", "离开时请关灯。"],
-                    ["Is it hot in here?", "这里热吗？"],
-                    ["I am home!", "我回来了！"],
-                    ["The bed is soft.", "床很软。"],
-                    ["My glasses are on the table.", "我的眼镜在桌子上。"],
-                    ["I'm going to sleep now.", "我现在要去睡觉了。"],
-                    ["I need a cup of tea.", "我需要一杯茶。"],
-                    ["Where is the bathroom?", "洗手间在哪里？"],
-                    ["The key is in the lock.", "钥匙在锁里。"],
-                    ["The floor is clean.", "地板很干净。"],
-                    ["Dinner is ready.", "晚饭准备好了。"],
-                    ["I like this chair.", "我喜欢这把椅子。"],
-                    ["The door is open.", "门开着。"],
-                    ["Let's watch TV.", "我们看电视吧。"],
-                    ["My dog is sleeping.", "我的狗在睡觉。"],
-                    ["I need a blanket.", "我需要一条毯子。"],
-                    ["The clock is fast.", "这个钟快了。"],
-                    ["Where are my shoes?", "我的鞋在哪里？"],
-                    ["I will call you later.", "我稍后给你打电话。"],
-                    ["It's time to eat breakfast.", "是时候吃早饭了。"],
-                    ["I can't find my phone.", "我找不到我的手机。"],
-                    ["The water is boiling.", "水开了。"],
-                    ["I need to hang up the clothes.", "我需要晾衣服。"],
-                    ["The mirror is dirty.", "镜子脏了。"],
-                    ["I'm reading a book.", "我正在看书。"],
-                    ["Please open the curtain.", "请拉开窗帘。"],
-                    ["The washing machine is running.", "洗衣机正在运行。"],
-                    ["Do you like this color?", "你喜欢这个颜色吗？"],
-                    ["I feel cold.", "我觉得冷。"],
-                    ["This is a lovely picture.", "这是一张可爱的照片。"],
-                    ["I am organizing my desk.", "我正在整理我的桌子。"],
-                    ["The heating is on.", "暖气开着。"],
-                    ["I bought some fresh fruit.", "我买了一些新鲜水果。"],
-                    ["Can you help me with this?", "你能帮我这个吗？"],
-                    ["I don't feel well.", "我感觉不舒服。"],
-                    ["Please sit down here.", "请坐在这里。"],
-                    ["The battery is low.", "电池快没电了。"],
-                    ["It's too loud.", "声音太大了。"],
-                    ["I have finished my work.", "我完成我的工作了。"],
-                    ["The drawer is stuck.", "抽屉卡住了。"],
-                    ["I need to go outside.", "我需要出去一下。"],
-                    ["The carpet is new.", "地毯是新的。"],
-                    ["I am going to the garden.", "我要去花园。"]
+                    ["Door", "门"], ["Window", "窗户"], ["Chair", "椅子"], ["Table", "桌子"], ["Sofa", "沙发"],
+                    ["Bed", "床"], ["Lamp", "灯"], ["Book", "书"], ["Clock", "时钟"], ["Wall", "墙"],
+                    ["Floor", "地板"], ["Rug", "地毯"], ["Kitchen", "厨房"], ["Bedroom", "卧室"], ["Bathroom", "卫生间"],
+                    ["Stove", "炉子"], ["Fridge", "冰箱"], ["Plate", "盘子"], ["Cup", "杯子"], ["Spoon", "勺子"],
+                    ["Fork", "叉子"], ["Knife", "刀"], ["Towel", "毛巾"], ["Soap", "肥皂"], ["Mirror", "镜子"],
+                    ["Shower", "淋浴"], ["Toilet", "马桶"], ["Pillow", "枕头"], ["Blanket", "毯子"], ["Closet", "衣柜"],
+                    ["Light", "灯"], ["Phone", "电话"], ["Key", "钥匙"], ["Coat", "外套"], ["Shoes", "鞋子"],
+                    ["TV", "电视"], ["Remote", "遥控器"], ["Picture", "图片"], ["Plant", "植物"], ["Heater", "暖气"],
+                    ["Fan", "风扇"], ["Water", "水"], ["Food", "食物"], ["Clean", "打扫"], ["Cook", "烹饪"],
+                    ["Sleep", "睡觉"], ["Sit", "坐"], ["Read", "阅读"], ["Walk", "走路"], ["Home", "家"]
                 ]
             },
             2: { 
                 name: "社区交流", 
                 icon: "🏘️", 
                 score: 15,
+                // Level 2: Community Communication (50 short sentences - 3 words max)
                 sentences: [
-                    ["Good morning, neighbor.", "早上好，邻居。"],
-                    ["Thank you for your help.", "谢谢你的帮助。"],
-                    ["Excuse me, where is the library?", "对不起，请问图书馆在哪里？"],
-                    ["Have a nice day!", "祝你有个美好的一天！"],
-                    ["What time is it now?", "现在几点了？"],
-                    ["I need to see a doctor.", "我需要看医生。"],
-                    ["The bus stop is around the corner.", "公交车站就在拐角处。"],
-                    ["I am sorry for the mistake.", "我对我的错误感到抱歉。"],
-                    ["May I ask a question?", "我可以问一个问题吗？"],
-                    ["How do you spell that?", "那个怎么拼写？"],
-                    ["Can you speak slowly, please?", "请您说慢一点好吗？"],
-                    ["I live nearby.", "我就住在附近。"],
-                    ["This park is very clean.", "这个公园很干净。"],
-                    ["I am going to the pharmacy.", "我要去药店。"],
-                    ["Goodbye, see you tomorrow.", "再见，明天见。"],
-                    ["Do you have any suggestions?", "你有什么建议吗？"],
-                    ["I don't understand that.", "我不明白那个。"],
-                    ["I need help with this form.", "我需要帮助填写这张表格。"],
-                    ["Where is the nearest bank?", "最近的银行在哪里？"],
-                    ["It was nice talking to you.", "很高兴和你交谈。"],
-                    ["Can I pay with cash?", "我可以用现金支付吗？"],
-                    ["How are you doing today?", "你今天过得怎么样？"],
-                    ["I am feeling much better.", "我感觉好多了。"],
-                    ["The community center is open.", "社区中心开放了。"],
-                    ["Where can I find a map?", "我在哪里可以找到地图？"],
-                    ["I appreciate your patience.", "我感谢您的耐心。"],
-                    ["Please wait for me here.", "请在这里等我。"],
-                    ["What is your phone number?", "你的电话号码是多少？"],
-                    ["I am looking for a quiet place.", "我正在找一个安静的地方。"],
-                    ["I would like a receipt, please.", "请给我一张收据。"],
-                    ["Is this seat taken?", "这个座位有人坐吗？"],
-                    ["Let's meet at the entrance.", "我们在入口处见面吧。"],
-                    ["The store closes at five.", "这家商店五点关门。"],
-                    ["Do you have this in a larger size?", "这个有大一点的尺码吗？"],
-                    ["I will take this one.", "我要这个。"],
-                    ["I need to register here.", "我需要在这里注册。"],
-                    ["Please fill out this paper.", "请填写这张纸。"],
-                    ["What kind of weather is it?", "今天是什么样的天气？"],
-                    ["It's very cold outside.", "外面很冷。"],
-                    ["I am retired now.", "我现在退休了。"],
-                    ["I am enjoying my life.", "我正在享受我的生活。"],
-                    ["The concert was wonderful.", "音乐会很精彩。"],
-                    ["Do you have Wi-Fi here?", "这里有无线网络吗？"],
-                    ["I'm visiting my friend.", "我正在拜访我的朋友。"],
-                    ["I need to mail this letter.", "我需要寄这封信。"],
-                    ["Can you repeat that, please?", "请你重复一遍好吗？"],
-                    ["I agree with you.", "我同意你的看法。"],
-                    ["We should help each other.", "我们应该互相帮助。"],
-                    ["I'm looking for the restroom.", "我正在找洗手间。"],
-                    ["Please be careful.", "请小心。"]
+                    ["Hi", "你好"], ["Hello there", "你好"], ["Good morning", "早上好"], ["See you", "再见"], ["Bye now", "现在再见"],
+                    ["Thank you", "谢谢你"], ["You're welcome", "不客气"], ["I'm sorry", "对不起"], ["Excuse me", "对不起"], ["Come in", "请进"],
+                    ["Sit down", "请坐"], ["Be quiet", "请安静"], ["Yes, please", "是的，请"], ["No, thanks", "不，谢谢"], ["I agree", "我同意"],
+                    ["I promise", "我保证"], ["I quit", "我放弃"], ["I know", "我知道"], ["I don't know", "我不知道"], ["Call me", "给我打电话"],
+                    ["Help me", "帮帮我"], ["Look out", "小心"], ["Watch out", "当心"], ["It's cold", "天气冷"], ["It's hot", "天气热"],
+                    ["I'm hungry", "我饿了"], ["I'm thirsty", "我渴了"], ["I feel sick", "我生病了"], ["I am fine", "我很好"], ["I'm happy", "我很高兴"],
+                    ["I'm tired", "我累了"], ["Go ahead", "请吧"], ["Wait here", "在这里等"], ["This way", "这边走"], ["Follow me", "跟着我"],
+                    ["Try again", "再试一次"], ["Don't worry", "别担心"], ["It's true", "这是真的"], ["Is it true?", "这是真的吗?"], ["I like it", "我喜欢它"],
+                    ["I need it", "我需要它"], ["Come back", "回来"], ["Let's go", "我们走吧"], ["Take care", "保重"], ["Why not?", "为什么不?"],
+                    ["What's up?", "怎么了?"], ["Give me", "给我"], ["Hurry up", "快点"], ["Come here", "过来"], ["Good night", "晚安"]
                 ]
             },
-            3: { 
+         3: { 
                 name: "户外活动", 
                 icon: "🌳", 
                 score: 20,
                 sentences: [
-                    ["It is a sunny day.", "今天是个晴天。"],
-                    ["I love walking in the park.", "我喜欢在公园散步。"],
-                    ["Look at the beautiful flowers.", "看那些美丽的花。"],
-                    ["The air is very fresh.", "空气非常新鲜。"],
-                    ["I see a bird flying.", "我看到一只鸟在飞。"],
-                    ["Let's climb the mountain.", "我们去爬山吧。"],
-                    ["I enjoy the beach view.", "我喜欢海滩的景色。"],
-                    ["The market is open today.", "市场今天开门。"],
-                    ["The concert starts soon.", "音乐会很快就要开始了。"],
-                    ["It might rain later.", "等会儿可能会下雨。"],
-                    ["I need sunscreen.", "我需要防晒霜。"],
-                    ["Where is the hiking trail?", "徒步小径在哪里？"],
-                    ["The grass is green.", "草地是绿色的。"],
-                    ["I am taking a photo.", "我正在拍照。"],
-                    ["Do you want an ice cream?", "你想要冰淇淋吗？"],
-                    ["The sky is blue and clear.", "天空是蓝色且晴朗的。"],
-                    ["It's getting dark now.", "现在天快黑了。"],
-                    ["We should go back home.", "我们应该回家了。"],
-                    ["I feel so relaxed here.", "我在这里感到非常放松。"],
-                    ["The leaves are falling.", "树叶正在落下。"],
-                    ["I found a pretty rock.", "我找到一块漂亮的石头。"],
-                    ["Let's have a picnic.", "我们去野餐吧。"],
-                    ["The river is very long.", "这条河很长。"],
-                    ["I bought fresh vegetables.", "我买了新鲜的蔬菜。"],
-                    ["This park has many trees.", "这个公园有很多树。"],
-                    ["I lost my way.", "我迷路了。"],
-                    ["Can you show me the directions?", "你能给我指路吗？"],
-                    ["I am sitting on the bench.", "我坐在长凳上。"],
-                    ["The wind is strong.", "风很大。"],
-                    ["It is a perfect day for exercise.", "今天是锻炼身体的完美日子。"],
-                    ["I need a drink of water.", "我需要喝水。"],
-                    ["The sunset is beautiful.", "日落很美丽。"],
-                    ["Be careful of the steps.", "小心台阶。"],
-                    ["I forgot my hat.", "我忘了带我的帽子。"],
-                    ["The museum is free entry.", "博物馆是免费入场。"],
-                    ["Let's buy a souvenir.", "我们买个纪念品吧。"],
-                    ["I love this kind of weather.", "我喜欢这种天气。"],
-                    ["The street performers are good.", "街头艺人很棒。"],
-                    ["I need to charge my phone.", "我需要给手机充电。"],
-                    ["The fountain is running.", "喷泉在喷水。"],
-                    ["Where can I find a public restroom?", "我在哪里可以找到公共洗手间？"],
-                    ["I'm waiting for my friend.", "我正在等我的朋友。"],
-                    ["The zoo has many animals.", "动物园里有很多动物。"],
-                    ["I like listening to the birds.", "我喜欢听鸟叫。"],
-                    ["Let's take a break.", "我们休息一下吧。"],
-                    ["This path is easy to walk.", "这条路很容易走。"],
-                    ["I feel better after the walk.", "散步后我感觉好多了。"],
-                    ["The stars are shining brightly.", "星星闪耀着光芒。"],
-                    ["I will go fishing tomorrow.", "我明天要去钓鱼。"],
-                    ["I miss the fresh air.", "我想念新鲜的空气。"]
+                    ["The sun is out.", "太阳出来了。"],
+                    ["Let's go outside.", "我们出去吧。"],
+                    ["Look at the sky.", "看天空。"],
+                    ["The park is big.", "公园很大。"],
+                    ["I see a dog.", "我看到一只狗。"],
+                    ["The grass is green.", "草是绿色的。"],
+                    ["I feel the wind.", "我感觉到风。"],
+                    ["We need water.", "我们需要水。"],
+                    ["It is very hot.", "天气很热。"],
+                    ["Do you like hiking?", "你喜欢徒步吗？"],
+                    ["Take a deep breath.", "深呼吸。"],
+                    ["I wear a hat.", "我戴着一顶帽子。"],
+                    ["The flowers smell good.", "花闻起来很香。"],
+                    ["Let's find a bench.", "我们找个长凳吧。"],
+                    ["I love the view.", "我喜欢这个景色。"],
+                    ["The birds are singing.", "鸟儿在唱歌。"],
+                    ["This path is easy.", "这条路很容易。"],
+                    ["Be careful now.", "现在要小心。"],
+                    ["I feel relaxed.", "我感觉很放松。"],
+                    ["The market is busy.", "市场很热闹。"],
+                    ["Let's buy food.", "我们买食物吧。"],
+                    ["I lost my key.", "我弄丢了我的钥匙。"],
+                    ["Where is the shop?", "商店在哪里？"],
+                    ["I am very thirsty.", "我非常渴。"],
+                    ["It might rain.", "可能下雨。"],
+                    ["The stars shine bright.", "星星闪耀。"],
+                    ["Let's watch the sunset.", "我们看日落吧。"],
+                    ["I like this place.", "我喜欢这个地方。"],
+                    ["Take a photo now.", "现在拍张照片。"],
+                    ["I see a mountain.", "我看到一座山。"],
+                    ["Is the zoo open?", "动物园开门吗？"],
+                    ["The river is long.", "河很长。"],
+                    ["Let's go fishing.", "我们去钓鱼吧。"],
+                    ["I am walking home.", "我正在走路回家。"],
+                    ["We are almost there.", "我们快到了。"],
+                    ["The museum is free.", "博物馆是免费的。"],
+                    ["I need a ticket.", "我需要一张票。"],
+                    ["Please wait for me.", "请等我。"],
+                    ["I wear good shoes.", "我穿着好鞋。"],
+                    ["The weather is nice.", "天气很好。"],
+                    ["I need a rest.", "我需要休息。"],
+                    ["I am having fun.", "我玩得很开心。"],
+                    ["Let's ride a bike.", "我们骑自行车吧。"],
+                    ["Look at that tree.", "看那棵树。"],
+                    ["I love fresh air.", "我爱新鲜空气。"],
+                    ["Let's eat lunch.", "我们吃午饭吧。"],
+                    ["I feel much better.", "我感觉好多了。"],
+                    ["Let's check the map.", "我们看看地图吧。"],
+                    ["What is that sound?", "那是什么声音？"],
+                    ["The city is bright.", "城市很明亮。"]
                 ]
             },
             4: { 
@@ -402,7 +355,7 @@
                     ["I need a doctor immediately.", "我需要立刻看医生。"],
                     ["What is the emergency number?", "紧急电话号码是多少？"],
                     ["I have fallen down.", "我摔倒了。"],
-                    ["Can you call my son/daughter?", "你能给我儿子/女儿打电话吗？"],
+                    ["Can you call my daughter?", "你能给我女儿打电话吗？"],
                     ["I feel very sick.", "我感觉很不舒服。"],
                     ["Please stay with me.", "请和我待在一起。"],
                     ["I need water and shelter.", "我需要水和住所。"],
@@ -445,22 +398,24 @@
                     ["Is everything alright?", "一切都好吗？"],
                     ["I need to check out.", "我需要退房。"]
                 ]
+            },
+            6: { 
+                name: "环球达人", 
+                icon: "✈️", 
+                score: 30, 
+                sentences: [
+                    ["I would like to confirm my reservation.", "我想确认我的预订。"],
+                    ["Could you please print the boarding pass?", "您能打印登机牌吗？"],
+                    ["What is the exchange rate today?", "今天的汇率是多少？"],
+                    ["I am here on a business trip.", "我来这里出差。"],
+                    ["Thank you for your cooperation.", "谢谢您的合作。"],
+                    ["I need to renew my passport.", "我需要更新我的护照。"],
+                    ["Where can I find the customs office?", "我在哪里可以找到海关办公室？"],
+                    ["This is a fantastic opportunity.", "这是一个绝佳的机会。"],
+                    ["I look forward to our meeting.", "我期待着我们的会面。"],
+                    ["Please let me know if you have any questions.", "如果您有任何问题，请告诉我。"]
+                ]
             }
-        };
-
-        // =================================================================
-        // Game State Management
-        // =================================================================
-        let game = {
-            currentLevel: 1,
-            score: 0,
-            levelScore: 0,
-            sentences: [], // Stores all [English, Chinese] sentences for the current Level
-            usedIndices: new Set(), // Stores indices of used sentences to avoid repetition
-            currentSentence: null,
-            recognition: null, // SpeechRecognition instance
-            isSpeaking: false, // Prevents multiple TTS clicks
-            isGameActive: false,
         };
 
         // =================================================================
@@ -478,6 +433,21 @@
             skipButton: document.getElementById('skip-button'),
             modalContainer: document.getElementById('modal-container'),
             confettiContainer: document.getElementById('confetti-container')
+        };
+
+        // =================================================================
+        // Game State Management
+        // =================================================================
+        let game = {
+            currentLevel: 1,
+            score: 0,
+            levelScore: 0,
+            sentences: [], // Stores all [English, Chinese] sentences for the current Level
+            usedIndices: new Set(), // Stores indices of used sentences to avoid repetition
+            currentSentence: null,
+            recognition: null, // SpeechRecognition instance
+            isSpeaking: false, // Prevents multiple TTS clicks
+            isGameActive: false,
         };
 
         /**
@@ -587,13 +557,17 @@
             // 1. Check if score triggers level up
             if (requiredLevel > game.currentLevel || forceLevelUp && game.currentLevel < MAX_LEVEL) {
                 const oldLevel = game.currentLevel;
+                // 这里的 Math.min(MAX_LEVEL, ...) 确保了即使 requiredLevel 超过 MAX_LEVEL，
+                // game.currentLevel 也只会更新到 MAX_LEVEL，并只显示 MAX_LEVEL 的升级。
+                // requiredLevel > game.currentLevel 的判断确保了如果分数足以升更多级，也会触发升级。
                 game.currentLevel = Math.min(MAX_LEVEL, requiredLevel > game.currentLevel ? requiredLevel : game.currentLevel + 1);
                 
                 if (game.currentLevel > oldLevel) {
                     // Show Level Up modal and schedule next level loading
                     showModal('levelUp', {
+                        // 使用 game.currentLevel 确保获取正确的数据，现在最高到 LEVEL_DATA[6]
                         level: game.currentLevel,
-                        name: LEVEL_DATA[game.currentLevel].name
+                        name: LEVEL_DATA[game.currentLevel].name 
                     });
                     
                     // Delay loading of new Level for Confetti/PopUp duration (10 seconds)
@@ -605,6 +579,7 @@
             }
             
             // 2. Check if maximum level is reached
+            // 如果 currentLevel 达到 MAX_LEVEL (6) 并且 (分数已触发 didAction 或所有单词已完成 forceLevelUp)
             if (game.currentLevel >= MAX_LEVEL && (didAction || forceLevelUp)) {
                 handleGameOver();
                 didAction = true;
@@ -680,15 +655,18 @@
             game.recognition.interimResults = false;
             game.recognition.maxAlternatives = 1;
 
-            DOMElements.speechStatus.textContent = "🔊 正在听... 请大声读出英文句子";
+            DOMElements.speechStatus.textContent = "🔊 正在听... 请大声读出英文";
             DOMElements.speechStatus.classList.remove('hidden');
             DOMElements.speakButton.classList.add('bg-yellow-500', 'animate-pulse');
 
             game.recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript.trim();
+                // Basic cleaning for comparison (removing punctuation, lowercasing)
                 const cleanTranscript = transcript.toLowerCase().replace(/[.,!?'"]+/g, '');
                 const cleanTarget = targetText.toLowerCase().replace(/[.,!?'"]+/g, '');
                 
+                // For single words, we can also check if the recognized word is *contained* // within the target, to allow for minor speech recognition errors, but for accuracy, 
+                // we'll stick to a strict comparison on the cleaned text.
                 if (cleanTranscript === cleanTarget) {
                     // Correct pronunciation
                     const didLevelUpOrEnd = gainScore(currentScore); 
@@ -896,6 +874,7 @@
         
         // Start the game after the page loads
         window.onload = function() {
+            // PWA注册已在前面部分处理，这里只需要启动游戏
             initGame();
         };
 
